@@ -1,5 +1,5 @@
 import type { Dog } from './dog.ts';
-import { subj, topic, conj } from './josa.ts';
+import { topic, conj } from './josa.ts';
 
 /**
  * 안전 게이트.
@@ -65,35 +65,25 @@ const sizeGap: Rule = (a, b) => {
   return null;
 };
 
-const isInHeat = (d: Dog) => d.sex === 'female' && !d.neutered && d.inHeat === true;
+const isIntact = (d: Dog, sex: Dog['sex']) => d.sex === sex && !d.neutered;
 
 /**
- * 발정 중 암컷.
- * 견주 본인이 곤란해지는 일이라 정직하게 적을 이유가 있는 항목이다.
+ * 둘 다 중성화하지 않은 암수.
  *
- * 발정기 산책 자체는 막지 않는 게 통설이지만, 권고는 일관되게 "다른 개와의 접촉을 피하라"다.
- * 그런데 이 앱은 다른 개와 만나는 게 목적이고, 게다가 사람 많은 장소를 권한다 —
- * 사람이 많은 곳은 개도 많은 곳이다. 그래서 상대가 암컷이어도 경고는 띄운다.
+ * 발정 여부를 묻지 않고 차단한다. 발정기가 겹치는 시점을 우리가 알 수 없고,
+ * 이 조합의 위험은 되돌릴 수 없다 — 원치 않는 임신은 사고를 넘어 강아지 생명 문제가 된다.
+ * 반대편 비용은 "매칭 한 건을 못 함"이라 비대칭이 명백하다.
+ *
+ * 1년 중 대부분은 문제가 없는 조합이지만, 확신이 없으면 막는 쪽으로 기울인다.
  */
-const heatCycle: Rule = (a, b) => {
-  const female = [a, b].find(isInHeat);
-  if (!female) return null;
-  const other = female === a ? b : a;
-
-  if (other.sex === 'male' && !other.neutered) {
-    return {
-      code: 'IN_HEAT_INTACT_MALE',
-      level: 'block',
-      message: `${subj(female.name)} 발정 중이고 ${topic(other.name)} 중성화하지 않은 수컷입니다. 이 시기에는 만나지 않는 게 좋습니다.`,
-    };
-  }
-
-  // 중성화한 수컷도 페로몬에 반응하고, 암컷끼리라도 산책로에서 수컷을 만나는 건 막을 수 없다.
-  // 상대가 누구든 조용한 시간대를 권하는 것으로 하나로 묶는다.
+const intactPair: Rule = (a, b) => {
+  const female = [a, b].find((d) => isIntact(d, 'female'));
+  const male = [a, b].find((d) => isIntact(d, 'male'));
+  if (!female || !male) return null;
   return {
-    code: 'IN_HEAT',
-    level: 'caution',
-    message: `${subj(female.name)} 발정 중입니다. 다른 수컷을 만날 수 있으니 목줄을 짧게 잡고, 이른 아침이나 밤처럼 조용한 시간대에 만나는 걸 권해요.`,
+    code: 'INTACT_PAIR',
+    level: 'block',
+    message: `${conj(female.name)} ${topic(male.name)} 둘 다 중성화하지 않았습니다. 발정기가 겹치면 원치 않는 임신이나 다툼으로 이어질 수 있어 권하지 않습니다.`,
   };
 };
 
@@ -122,7 +112,7 @@ const seniorAndPuppy: Rule = (a, b) => {
   };
 };
 
-const RULES: Rule[] = [vaccination, sizeGap, heatCycle, intactMales, seniorAndPuppy];
+const RULES: Rule[] = [vaccination, sizeGap, intactPair, intactMales, seniorAndPuppy];
 
 /**
  * 두 마리의 만남을 판정한다. 순서를 바꿔도 결과는 같다.

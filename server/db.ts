@@ -23,7 +23,6 @@ db.exec(`
     weight_kg               REAL NOT NULL,
     sex                     TEXT NOT NULL,
     neutered                INTEGER NOT NULL,
-    in_heat                 INTEGER NOT NULL DEFAULT 0,
     district                TEXT,
     walk_times              TEXT NOT NULL DEFAULT '[]',
     temperaments            TEXT NOT NULL DEFAULT '[]',
@@ -62,7 +61,7 @@ const toDog = (row: Row): Dog => ({
   weightKg: Number(row.weight_kg),
   sex: String(row.sex) as Sex,
   neutered: Boolean(row.neutered),
-  inHeat: Boolean(row.in_heat),
+
   district: row.district ? String(row.district) : undefined,
   walkTimes: parseList<WalkTime>(row.walk_times),
   temperaments: parseList<Temperament>(row.temperaments),
@@ -75,13 +74,13 @@ const toDog = (row: Row): Dog => ({
 
 const upsert = db.prepare(`
   INSERT INTO dogs (
-    id, name, breed, age_months, weight_kg, sex, neutered, in_heat,
+    id, name, breed, age_months, weight_kg, sex, neutered,
     district, walk_times, temperaments, preferences, sensitive_to_dogs, temperaments_updated_at
-  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET
     name = excluded.name, breed = excluded.breed, age_months = excluded.age_months,
     weight_kg = excluded.weight_kg, sex = excluded.sex, neutered = excluded.neutered,
-    in_heat = excluded.in_heat, district = excluded.district, walk_times = excluded.walk_times,
+    district = excluded.district, walk_times = excluded.walk_times,
     temperaments = excluded.temperaments, preferences = excluded.preferences,
     sensitive_to_dogs = excluded.sensitive_to_dogs,
     temperaments_updated_at = excluded.temperaments_updated_at
@@ -97,7 +96,6 @@ export function saveDog(dog: Dog): Dog {
     dog.weightKg,
     dog.sex,
     dog.neutered ? 1 : 0,
-    dog.inHeat ? 1 : 0,
     dog.district ?? null,
     JSON.stringify(dog.walkTimes ?? []),
     JSON.stringify(dog.temperaments),

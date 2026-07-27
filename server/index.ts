@@ -73,8 +73,6 @@ function parseDog(input: unknown): Dog {
     weightKg,
     sex: d.sex,
     neutered,
-    // 중성화했으면 발정 상태는 의미가 없다. 남겨두면 룰이 잘못 걸린다
-    inHeat: !neutered && d.sex === 'female' ? Boolean(d.inHeat) : false,
     district,
     walkTimes: pick(d.walkTimes, WALK_TIMES) as Dog['walkTimes'],
     // 태그 상한은 화면에서도 막지만, 서버가 최종 방어선이다

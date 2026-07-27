@@ -111,7 +111,6 @@ const profileSummary = (dog: Dog) =>
     dog.walkTimes?.length ? `${dog.walkTimes.join(', ')} 산책` : '산책 시간대 미기재',
     dog.temperaments.join(' · ') || '성향 미기재',
     dog.sensitiveToDogs ? '낯선 개에게 예민해요' : null,
-    dog.inHeat ? '발정 중' : null,
   ]
     .filter(Boolean)
     .join(' · ');

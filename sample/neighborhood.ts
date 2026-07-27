@@ -162,7 +162,6 @@ const others: Dog[] = [
     weightKg: 15,
     sex: 'female',
     neutered: false,
-    inHeat: true,
     temperaments: ['겁많음'],
     preferences: [],
     temperamentsUpdatedAt: RECENT,

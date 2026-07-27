@@ -53,7 +53,7 @@ const NEUTRAL_TAG_FIT = 50;
 const ALTERNATIVE: Record<string, string> = {
   VACCINATION_INCOMPLETE: '접종을 마친 뒤에 다시 만나보세요.',
   SIZE_GAP_BLOCK: '체급이 비슷한 친구부터 찾아보시는 걸 권해요.',
-  IN_HEAT_INTACT_MALE: '발정이 끝난 뒤에 다시 확인해보세요.',
+  INTACT_PAIR: '중성화한 친구를 찾아보시거나, 중성화를 고려해보세요.',
 };
 
 const verdictOf = (m: MatchCandidate): { tier: MatchTier; verdict: string } => {

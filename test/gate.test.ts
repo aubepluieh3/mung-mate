@@ -53,31 +53,28 @@ test('체급 판정은 절대 차이가 아니라 비율로 한다', () => {
   assert.equal(evaluateGate(dog({ weightKg: 30 }), dog({ id: 'b', weightKg: 40 })).level, 'ok');
 });
 
-test('발정 중 암컷 × 미중성화 수컷은 차단, 중성화 수컷은 경고', () => {
-  const inHeat = dog({ id: 'f', name: '보리', sex: 'female', neutered: false, inHeat: true });
-  const intact = dog({ id: 'm', name: '초코', neutered: false });
-  const fixed = dog({ id: 'm2', name: '두부', neutered: true });
+test('중성화하지 않은 암수는 차단한다', () => {
+  const female = dog({ id: 'f', name: '나비', sex: 'female', neutered: false });
+  const male = dog({ id: 'm', name: '초코', sex: 'male', neutered: false, weightKg: 13 });
 
-  assert.equal(evaluateGate(inHeat, intact).level, 'block');
-  assert.deepEqual(codes(inHeat, intact), ['IN_HEAT_INTACT_MALE']);
-  assert.equal(evaluateGate(inHeat, fixed).level, 'caution');
-  assert.deepEqual(codes(inHeat, fixed), ['IN_HEAT']);
+  const result = evaluateGate(female, male);
+  assert.equal(result.level, 'block');
+  assert.deepEqual(codes(female, male), ['INTACT_PAIR']);
+  assert.match(result.findings[0].message, /원치 않는 임신/);
 });
 
-test('발정 중이면 상대가 암컷이어도 경고한다', () => {
-  // 암컷끼리 페로몬 위험은 없지만, 산책로에서 수컷을 만나는 건 막을 수 없다
-  const inHeat = dog({ id: 'f', name: '나비', sex: 'female', neutered: false, inHeat: true });
-  const otherFemale = dog({ id: 'f2', name: '토리', sex: 'female', neutered: true, weightKg: 13 });
-
-  const result = evaluateGate(inHeat, otherFemale);
-  assert.equal(result.level, 'caution');
-  assert.deepEqual(codes(inHeat, otherFemale), ['IN_HEAT']);
-  assert.match(result.findings[0].message, /조용한 시간대/);
+test('한쪽이라도 중성화했으면 차단하지 않는다', () => {
+  const female = dog({ id: 'f', sex: 'female', neutered: false });
+  const male = dog({ id: 'm', sex: 'male', neutered: true, weightKg: 13 });
+  assert.deepEqual(codes(female, male), []);
 });
 
-test('중성화한 암컷은 발정 룰에 걸리지 않는다', () => {
-  const spayed = dog({ id: 'f', sex: 'female', neutered: true, inHeat: true });
-  assert.deepEqual(codes(spayed, dog({ neutered: false })), []);
+test('발정 여부는 받지 않는다 — 중성화 여부만 본다', () => {
+  // 발정은 켜고 끄는 걸 기억해야 하는 상태라 프로필에 둘 수 없다
+  const a = dog({ id: 'a', sex: 'female', neutered: false });
+  const b = dog({ id: 'b', sex: 'male', neutered: false, weightKg: 13 });
+  // 같은 조합이면 언제 판정해도 결과가 같다
+  assert.deepEqual(evaluateGate(a, b), evaluateGate(a, b));
 });
 
 test('미중성화 성견 수컷끼리는 경고', () => {
@@ -118,7 +115,7 @@ test('순서를 바꿔도 판정이 같다', () => {
     [dog({ weightKg: 3 }), dog({ id: 'b', weightKg: 30 })],
     [dog({ ageMonths: 2 }), dog({ id: 'b', ageMonths: 60 })],
     [
-      dog({ id: 'f', sex: 'female', neutered: false, inHeat: true }),
+      dog({ id: 'f', sex: 'female', neutered: false }),
       dog({ id: 'm', neutered: false }),
     ],
     [dog({ ageMonths: 130 }), dog({ id: 'y', ageMonths: 6, weightKg: 11 })],

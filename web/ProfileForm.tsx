@@ -26,7 +26,7 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
   const [draft, setDraft] = useState<Dog>(dog);
   const [years, setYears] = useState(Math.floor(dog.ageMonths / 12));
   const [months, setMonths] = useState(dog.ageMonths % 12);
-  // 성별은 발정·미중성화 수컷 룰에 직결된다. 기본값을 넣어두면 안 바꾸고 지나쳐 판정이 틀린다
+  // 성별은 중성화 관련 룰에 직결된다. 기본값을 넣어두면 안 바꾸고 지나쳐 판정이 틀린다
   const [sexPicked, setSexPicked] = useState(!isNew);
   const [error, setError] = useState('');
 
@@ -63,8 +63,6 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
       name: draft.name.trim(),
       breed: draft.breed.trim() || '믹스',
       ageMonths: years * 12 + months,
-      // 중성화했으면 발정 상태는 의미가 없다. 남겨두면 룰이 잘못 걸린다
-      inHeat: !draft.neutered && draft.sex === 'female' ? draft.inHeat : false,
       // 성향을 저장한 시점을 남긴다. 오래되면 점수에서 신뢰를 낮춘다
       temperamentsUpdatedAt: new Date().toISOString(),
     });
@@ -155,16 +153,13 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
         </label>
       </fieldset>
 
-      {/* 미중성화 암컷에게만 묻는다. 견주 본인이 곤란해지는 일이라 정직하게 적을 이유가 있다 */}
-      {sexPicked && draft.sex === 'female' && !draft.neutered && (
-        <label className="inline highlight-field">
-          <input
-            type="checkbox"
-            checked={draft.inHeat === true}
-            onChange={(e) => patch({ inHeat: e.target.checked })}
-          />
-          지금 발정 중이에요
-        </label>
+      {/* 발정 여부는 묻지 않는다. 켜고 끄는 걸 기억해야 하는 값은 프로필에 둘 수 없다.
+          대신 판정하지 않고 알려준다 — 룰이 못 잡는 건 절차로 막는다. */}
+      {sexPicked && !draft.neutered && (
+        <p className="notice">
+          중성화하지 않은 암수는 서로 만나지 않도록 안내하고 있어요. 발정기에는 다른 친구와의 만남을
+          미뤄주세요.
+        </p>
       )}
 
       <label>
