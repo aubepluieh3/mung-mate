@@ -1,5 +1,5 @@
 import type { Dog } from './dog.ts';
-import type { MatchCandidate } from './match.ts';
+import type { MatchCandidate, MatchGroup } from './match.ts';
 import { conj, topic } from './josa.ts';
 
 /**
@@ -34,6 +34,8 @@ export type MatchView = {
   /** 점수와 무관하게 항상 붙는 첫 만남 안내. 룰이 놓친 건 절차가 잡는다. */
   guidance: string;
   requestable: boolean;
+  /** 이미 산책 요청을 보낸 상대인가. */
+  requested: boolean;
 };
 
 const VERDICTS: { min: number; label: string; tier: MatchTier }[] = [
@@ -131,9 +133,10 @@ const highlightOf = (m: MatchCandidate): string | undefined => {
     ?.note;
 };
 
-export function toView(m: MatchCandidate): MatchView {
+export function toView(m: MatchCandidate, requested = false): MatchView {
   const { dog } = m;
   return {
+    requested,
     id: dog.id,
     name: dog.name,
     subtitle: `${dog.breed} · ${dog.weightKg}kg · ${Math.floor(dog.ageMonths / 12)}살`,
@@ -183,3 +186,34 @@ export function emptyReachableMessage(me: Dog, candidates: MatchCandidate[]): st
 /** 상대에게 내가 어떻게 보이는지 — 프로필을 안 채운 견주에게 보여줄 안내. */
 export const emptyProfileNudge = (dogName: string) =>
   `${topic(dogName)} 성향을 적지 않아서 추천 목록 아래쪽에 표시돼요. 성향을 적으면 ${conj(dogName)} 잘 맞는 친구를 찾기 쉬워집니다.`;
+
+export type MatchScreen = {
+  groups: { group: MatchGroup; heading: string; items: MatchView[] }[];
+  /** 만날 수 있는 친구가 없을 때만 채워진다. */
+  emptyMessage: string;
+};
+
+const GROUP_ORDER: MatchGroup[] = ['reachable', 'far', 'blocked'];
+
+/**
+ * 화면에 그릴 것을 통째로 만든다.
+ * 조립까지 여기서 끝내면 화면은 렌더만 하고, 점수·산식은 클라이언트로 넘어가지 않는다.
+ */
+export function buildMatchScreen(
+  me: Dog,
+  candidates: MatchCandidate[],
+  requested: Set<string> = new Set(),
+): MatchScreen {
+  return {
+    groups: GROUP_ORDER.map((group) => ({
+      group,
+      heading: GROUP_HEADING[group],
+      items: candidates
+        .filter((m) => m.group === group)
+        .map((m) => toView(m, requested.has(m.dog.id))),
+    })).filter((g) => g.items.length > 0),
+    emptyMessage: candidates.some((m) => m.group === 'reachable')
+      ? ''
+      : emptyReachableMessage(me, candidates),
+  };
+}

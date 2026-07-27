@@ -8,3 +8,5 @@ build/
 data/*.db
 data/*.db-journal
 .vscode/
+data/*.db-wal
+data/*.db-shm

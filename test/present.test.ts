@@ -6,14 +6,14 @@ import { me, neighborhood, allDogs, districts } from '../sample/neighborhood.ts'
 
 const NOW = new Date('2026-07-27T00:00:00Z');
 const OPTS = { now: NOW, districts };
-const views = findMatches(me, neighborhood, OPTS).map(toView);
+const views = findMatches(me, neighborhood, OPTS).map((m) => toView(m));
 const byName = (name: string) => views.find((v) => v.name === name)!;
 
 /** 다른 견주 시점으로 본 화면. 시점을 바꾸면 룰의 이상함이 드러난다. */
 const viewFrom = (viewerName: string, targetName: string) => {
   const dogs = allDogs();
   const viewer = dogs.find((d) => d.name === viewerName)!;
-  return findMatches(viewer, dogs, OPTS).map(toView).find((v) => v.name === targetName)!;
+  return findMatches(viewer, dogs, OPTS).map((m) => toView(m)).find((v) => v.name === targetName)!;
 };
 
 /** 점수와 산식이 새어나가는 패턴. 체급 "1.9배" 같은 정보는 견주에게 유용하므로 허용한다. */

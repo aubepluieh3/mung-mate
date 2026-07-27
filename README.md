@@ -76,11 +76,15 @@
 
 ```bash
 npm install
-npm run dev        # http://localhost:5180
+npm run server     # API + DB (5181). 먼저 띄운다
+npm run dev        # 화면 (5180) → http://localhost:5180
 npm test           # 판정 룰 테스트
 npm run typecheck
-node --experimental-strip-types scripts/demo.ts [강아지이름]   # 다른 견주 시점으로 목록 확인
+node --experimental-strip-types scripts/demo.ts [강아지이름]   # 다른 견주 시점으로 목록 확인(샘플 기준)
 ```
+
+의존성은 화면(Vite·React)에만 있다. 서버는 Node 내장 `node:http` + `node:sqlite`,
+판정 엔진은 `node:test` 로만 검증한다. DB 는 `data/mung-mate.db` 에 생기고 비어 있으면 샘플로 채워진다.
 
 ---
 
@@ -88,7 +92,12 @@ node --experimental-strip-types scripts/demo.ts [강아지이름]   # 다른 견
 
 ## 정한 것
 
-- **기술 스택** — 서버 없음. 판정 엔진은 의존성 0(TypeScript + `node:test`), 화면은 Vite + React, 저장은 `localStorage`
+- **기술 스택** — 판정 엔진은 의존성 0(TypeScript + `node:test`), 화면은 Vite + React,
+  서버는 Node 내장 `node:http` + `node:sqlite`
+- **판정은 서버에서만 돈다** — 처음엔 `localStorage` 로 만들었는데, 그러면 궁합 매트릭스가
+  브라우저 번들에 그대로 들어간다. "산식이 노출되면 유리한 태그만 골라 적는다"고 정해놓고
+  배포 형태 때문에 원칙이 깨져 있었다. 지금은 화면이 완성된 결과만 받고,
+  남의 개 프로필도 클라이언트로 내려가지 않는다
 - **지도** — 붙이지 않았다. 정확한 위치 대신 **동 이름과 산책 시간대**로 만날 수 있는지 판단한다
 - **궁합 규칙** — 아래 두 단계로 나눴다. 이게 이 프로젝트의 핵심 결정이다
 
