@@ -29,12 +29,31 @@ export type Reach = {
   reachable: boolean;
 };
 
-const distanceOf = (a: Dog, b: Dog, graph: DistrictGraph): Distance => {
-  if (!a.district || !b.district) return 'unknown';
-  if (a.district === b.district) return 'same';
-  const adjacent = graph[a.district]?.includes(b.district) || graph[b.district]?.includes(a.district);
-  return adjacent ? 'near' : 'far';
+/**
+ * 두 동네 사이의 거리. 인접 관계는 양방향으로 본다 —
+ * 그래프에 한쪽만 적혀 있어도 걸어갈 수 있는 건 마찬가지다.
+ *
+ * 이 판정을 여러 곳에 복붙하면 안 된다. 한쪽은 양방향, 한쪽은 단방향으로 갈리면
+ * 산책 친구 목록과 산책로 목록이 같은 데이터로 다른 답을 낸다.
+ */
+export const districtDistance = (
+  a: string | undefined,
+  b: string | undefined,
+  graph: DistrictGraph,
+): Distance => {
+  if (!a || !b) return 'unknown';
+  if (a === b) return 'same';
+  return graph[a]?.includes(b) || graph[b]?.includes(a) ? 'near' : 'far';
 };
+
+/** 걸어갈 수 있는 거리인가. */
+export const isWalkable = (a: string | undefined, b: string | undefined, graph: DistrictGraph) => {
+  const d = districtDistance(a, b, graph);
+  return d === 'same' || d === 'near';
+};
+
+const distanceOf = (a: Dog, b: Dog, graph: DistrictGraph): Distance =>
+  districtDistance(a.district, b.district, graph);
 
 /** 겹치는 시간대를 하루 순서로 고정한다. 프로필에 적힌 순서에 결과가 좌우되면 안 된다. */
 const TIME_ORDER: WalkTime[] = ['아침', '점심', '저녁', '밤'];

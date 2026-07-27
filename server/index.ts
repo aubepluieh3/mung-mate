@@ -3,7 +3,9 @@ import { findMatches } from '../src/match.ts';
 import { buildMatchScreen, firstMeetingNotice, toWalkView } from '../src/present.ts';
 import { checkJoin, MAX_PARTICIPANTS, type Walk } from '../src/walk.ts';
 import { toTrailView, TRAIL_TAGS, type TrailTag } from '../src/trail.ts';
+import { isWalkable } from '../src/reach.ts';
 import type { Dog, WalkTime } from '../src/dog.ts';
+import { topic } from '../src/josa.ts';
 import {
   addRequest,
   allDogs,
@@ -47,6 +49,16 @@ const readBody = async (req: IncomingMessage): Promise<unknown> => {
   }
 };
 
+/**
+ * 길이를 서버에서 자른다. 화면에서 maxlength 를 걸어도 API 를 직접 부르면 무제한으로 들어온다.
+ * 500자 장소명 하나가 목록 전체를 망가뜨린다.
+ */
+const text = (value: unknown, max: number, label: string): string => {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed.length > max) throw new Error(`${topic(label)} ${max}자까지 적을 수 있어요.`);
+  return trimmed;
+};
+
 const KNOWN_DISTRICTS = new Set(Object.keys(districtGraph));
 const WALK_TIMES = new Set(['아침', '점심', '저녁', '밤']);
 const TEMPERAMENTS = new Set(['활발함', '차분함', '개좋아함', '사람좋아', '겁많음', '짖음많음']);
@@ -54,7 +66,7 @@ const TEMPERAMENTS = new Set(['활발함', '차분함', '개좋아함', '사람�
 /** 프로필은 견주가 보내는 값이므로 그대로 믿지 않는다. 판정에 쓰이는 값이라 더욱. */
 function parseDog(input: unknown): Dog {
   const d = (input ?? {}) as Record<string, unknown>;
-  const name = String(d.name ?? '').trim();
+  const name = text(d.name, 20, '이름');
   const weightKg = Number(d.weightKg);
   const ageMonths = Number(d.ageMonths);
 
@@ -76,7 +88,7 @@ function parseDog(input: unknown): Dog {
   return {
     id: typeof d.id === 'string' ? d.id : '',
     name,
-    breed: String(d.breed ?? '').trim() || '믹스',
+    breed: text(d.breed, 30, '견종') || '믹스',
     ageMonths: Math.floor(ageMonths),
     weightKg,
     sex: d.sex,
@@ -141,11 +153,8 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
     const dog = findDog(url.searchParams.get('dogId') ?? '');
     if (!dog) return [404, { error: '등록된 프로필을 찾을 수 없습니다.' }];
 
-    const near = (d: string) =>
-      d === dog.district || (dog.district ? (districtGraph[dog.district] ?? []).includes(d) : false);
-
     const walks = allWalks()
-      .filter((w) => near(w.district) && w.date >= today())
+      .filter((w) => isWalkable(dog.district, w.district, districtGraph) && w.date >= today())
       .map((w) => {
         const participants = w.participantIds.map(findDog).filter((d): d is Dog => d !== null);
         return toWalkView(w, participants, checkJoin(w, dog, participants), dog.id);
@@ -166,7 +175,7 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
     if (date < today()) throw new Error('지난 날짜로는 만들 수 없어요.');
     if (!WALK_TIMES.has(String(body.time))) throw new Error('시간대를 골라주세요.');
 
-    const place = String(body.place ?? '').trim();
+    const place = text(body.place, 60, '만날 장소');
     if (!place) throw new Error('만날 장소를 적어주세요.');
 
     const minutes = Number(body.minutes);
@@ -196,11 +205,10 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
     const dog = findDog(url.searchParams.get('dogId') ?? '');
     if (!dog) return [404, { error: '등록된 프로필을 찾을 수 없습니다.' }];
 
-    const adjacent = dog.district ? (districtGraph[dog.district] ?? []) : [];
     const walksAtNight = (dog.walkTimes ?? []).includes('밤');
 
     const trails = allTrails()
-      .filter((t) => t.district === dog.district || adjacent.includes(t.district))
+      .filter((t) => isWalkable(dog.district, t.district, districtGraph))
       .map((t) => toTrailView(t, dog.district, walksAtNight))
       .sort((a, b) => Number(b.nearby) - Number(a.nearby) || a.name.localeCompare(b.name, 'ko'));
 
@@ -214,7 +222,7 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
     if (!dog) return [404, { error: '등록된 프로필을 찾을 수 없습니다.' }];
     if (!dog.district) return [400, { error: '동네를 먼저 적어주세요.' }];
 
-    const name = String(body.name ?? '').trim();
+    const name = text(body.name, 40, '산책로 이름');
     if (!name) throw new Error('산책로 이름을 적어주세요.');
 
     const minutes = Number(body.minutes);
@@ -226,7 +234,7 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
     createTrail({
       district: dog.district,
       name,
-      note: String(body.note ?? '').trim(),
+      note: text(body.note, 200, '한줄평'),
       minutes: Math.round(minutes),
       tags: (Array.isArray(body.tags)
         ? [...new Set(body.tags.filter((t): t is string => allowed.has(t)))]

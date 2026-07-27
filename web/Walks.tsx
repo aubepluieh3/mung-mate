@@ -112,8 +112,16 @@ export function Walks({ dogId }: { dogId: string }) {
   const [screen, setScreen] = useState<WalkScreen | null>(null);
   const [making, setMaking] = useState(false);
   const [error, setError] = useState('');
+  // 불러오기 전에 "0개"를 보여주면 견주는 약속이 없다고 오해한다
+  const [loading, setLoading] = useState(true);
 
-  const load = () => fetchWalks(dogId).then(setScreen).catch(() => setScreen(null));
+  const load = () => {
+    setLoading(true);
+    return fetchWalks(dogId)
+      .then(setScreen)
+      .catch(() => setScreen(null))
+      .finally(() => setLoading(false));
+  };
   useEffect(() => {
     load();
   }, [dogId]);
@@ -141,10 +149,19 @@ export function Walks({ dogId }: { dogId: string }) {
     );
   }
 
+  if (loading && !screen) {
+    return (
+      <section>
+        <h2>근처 산책 약속</h2>
+        <p className="notice">불러오는 중…</p>
+      </section>
+    );
+  }
+
   return (
     <section>
       <h2>
-        근처 산책 약속 <span className="count">{screen?.walks.length ?? 0}</span>
+        근처 산책 약속 {screen && <span className="count">{screen.walks.length}</span>}
       </h2>
 
       <button type="button" className="primary" onClick={() => setMaking(true)}>
@@ -152,6 +169,8 @@ export function Walks({ dogId }: { dogId: string }) {
       </button>
 
       {error && <p className="error">{error}</p>}
+
+      {!screen && <p className="error">산책 약속을 불러오지 못했어요. 잠시 뒤에 다시 시도해주세요.</p>}
 
       {screen && screen.walks.length === 0 && (
         <div className="empty">

@@ -227,9 +227,12 @@ export function toWalkView(
     participants: `${participants.map((d) => d.name).join(', ')} (${walk.participantIds.length}/${walk.capacity})`,
     joined,
     joinable: !joined && check.ok,
-    notes: check.ok
-      ? check.cautions.map((f) => f.message).slice(0, MAX_WATCH_OUTS)
-      : [check.reason, ...check.blockers.map((f) => f.message)].slice(0, MAX_WATCH_OUTS + 1),
+    // 내가 참여한 산책에 "이미 참여했다"는 거절 사유를 붙이지 않는다. 참여 중이라는 표시로 충분하다
+    notes: joined
+      ? []
+      : check.ok
+        ? check.cautions.map((f) => f.message).slice(0, MAX_WATCH_OUTS)
+        : [check.reason, ...check.blockers.map((f) => f.message)].slice(0, MAX_WATCH_OUTS + 1),
   };
 }
 

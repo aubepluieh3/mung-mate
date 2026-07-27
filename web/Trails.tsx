@@ -106,8 +106,16 @@ function TrailForm({
 export function Trails({ dogId }: { dogId: string }) {
   const [screen, setScreen] = useState<Screen | null>(null);
   const [adding, setAdding] = useState(false);
+  // 불러오기 전에 "0개"를 보여주면 견주는 산책로가 없다고 오해한다
+  const [loading, setLoading] = useState(true);
 
-  const refresh = () => load(dogId).then(setScreen).catch(() => setScreen(null));
+  const refresh = () => {
+    setLoading(true);
+    return load(dogId)
+      .then(setScreen)
+      .catch(() => setScreen(null))
+      .finally(() => setLoading(false));
+  };
   useEffect(() => {
     refresh();
   }, [dogId]);
@@ -125,15 +133,26 @@ export function Trails({ dogId }: { dogId: string }) {
     );
   }
 
+  if (loading && !screen) {
+    return (
+      <section>
+        <h2>근처 산책로</h2>
+        <p className="notice">불러오는 중…</p>
+      </section>
+    );
+  }
+
   return (
     <section>
       <h2>
-        근처 산책로 <span className="count">{screen?.trails.length ?? 0}</span>
+        근처 산책로 {screen && <span className="count">{screen.trails.length}</span>}
       </h2>
 
       <button type="button" className="primary" onClick={() => setAdding(true)}>
         산책로 등록
       </button>
+
+      {!screen && <p className="error">산책로를 불러오지 못했어요. 잠시 뒤에 다시 시도해주세요.</p>}
 
       {screen && screen.trails.length === 0 && (
         <div className="empty">
