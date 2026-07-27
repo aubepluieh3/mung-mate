@@ -62,6 +62,7 @@ db.exec(`
     id         TEXT PRIMARY KEY,
     district   TEXT NOT NULL,
     name       TEXT NOT NULL,
+    map_query  TEXT,
     note       TEXT NOT NULL DEFAULT '',
     minutes    INTEGER NOT NULL,
     tags       TEXT NOT NULL DEFAULT '[]',
@@ -213,7 +214,7 @@ export const joinWalk = (walkId: string, dogId: string) =>
 // --- 산책로 ---
 
 const insertTrail = db.prepare(
-  'INSERT INTO trails (id, district, name, note, minutes, tags, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  'INSERT INTO trails (id, district, name, map_query, note, minutes, tags, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
 );
 const selectTrails = db.prepare('SELECT * FROM trails ORDER BY district, name');
 
@@ -221,6 +222,7 @@ const toTrail = (row: Row): Trail => ({
   id: String(row.id),
   district: String(row.district),
   name: String(row.name),
+  mapQuery: row.map_query ? String(row.map_query) : undefined,
   note: String(row.note ?? ''),
   minutes: Number(row.minutes),
   tags: parseList<TrailTag>(row.tags),
@@ -233,6 +235,7 @@ export function createTrail(trail: Omit<Trail, 'id'>): Trail {
     id,
     trail.district,
     trail.name,
+    trail.mapQuery ?? null,
     trail.note,
     trail.minutes,
     JSON.stringify(trail.tags),

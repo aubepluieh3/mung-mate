@@ -52,6 +52,24 @@ test('뷰에 지도 링크가 들어간다', () => {
   assert.ok(toTrailView(trail(), '성산동', false).mapUrl.includes('map.kakao.com'));
 });
 
+test('지도 검색은 별칭이 아니라 실제 장소명으로 한다', () => {
+  // 산책로 이름은 견주가 붙인 별칭이라 지도에 없는 경우가 많다.
+  // "망원한강공원 산책길" 은 카카오맵 검색 결과가 0건이고 "망원한강공원" 은 나온다
+  const withQuery = toTrailView(trail({ mapQuery: '망원한강공원' }), '성산동', false);
+  assert.equal(decodeURIComponent(withQuery.mapUrl.split('/search/')[1]), '성산동 망원한강공원');
+
+  // 안 적었으면 산책로 이름으로 찾는다
+  const without = toTrailView(trail({ mapQuery: undefined }), '성산동', false);
+  assert.equal(
+    decodeURIComponent(without.mapUrl.split('/search/')[1]),
+    '성산동 망원한강공원 산책길',
+  );
+
+  // 공백만 적은 것도 안 적은 것으로 본다
+  const blank = toTrailView(trail({ mapQuery: '   ' }), '성산동', false);
+  assert.equal(blank.mapUrl, without.mapUrl);
+});
+
 test('서비스 지역 안내에 운영 동네가 모두 들어간다', () => {
   // 목록에 자기 동네가 없는 견주가 이유를 모르고 떠나면 안 된다
   const notice = serviceAreaNotice(['성산동', '망원동']);

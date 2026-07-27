@@ -25,6 +25,7 @@ function TrailForm({
   onDone: () => void;
 }) {
   const [name, setName] = useState('');
+  const [mapQuery, setMapQuery] = useState('');
   const [note, setNote] = useState('');
   const [minutes, setMinutes] = useState(30);
   const [picked, setPicked] = useState<TrailTag[]>([]);
@@ -38,7 +39,7 @@ function TrailForm({
     const res = await fetch('/api/trails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dogId, name, note, minutes, tags: picked }),
+      body: JSON.stringify({ dogId, name, mapQuery, note, minutes, tags: picked }),
     });
     if (res.ok) return onDone();
     const body = await res.json().catch(() => ({}));
@@ -53,6 +54,17 @@ function TrailForm({
       <label>
         산책로 이름
         <input value={name} placeholder="망원한강공원 산책길" onChange={(e) => setName(e.target.value)} />
+      </label>
+
+      {/* 산책로 이름은 별칭이라 지도에 없는 경우가 많다.
+          "망원한강공원 산책길"은 검색 결과가 0건이고 "망원한강공원"은 나온다. */}
+      <label>
+        지도에서 찾을 장소 <span className="hint">비워두면 산책로 이름으로 찾아요</span>
+        <input
+          value={mapQuery}
+          placeholder="망원한강공원"
+          onChange={(e) => setMapQuery(e.target.value)}
+        />
       </label>
 
       <label>

@@ -242,6 +242,7 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
     createTrail({
       district: dog.district,
       name,
+      mapQuery: text(body.mapQuery, 40, '지도에서 찾을 장소') || undefined,
       note: text(body.note, 200, '한줄평'),
       minutes: Math.round(minutes),
       tags: (Array.isArray(body.tags)

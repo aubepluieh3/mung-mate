@@ -33,6 +33,13 @@ export type Trail = {
   id: string;
   district: string;
   name: string;
+  /**
+   * 지도에서 찾을 장소 이름. 비어 있으면 산책로 이름을 쓴다.
+   *
+   * 산책로 이름은 견주가 붙인 별칭이라 지도에 없는 경우가 많다.
+   * "망원한강공원 산책길"은 검색 결과가 0건이고 "망원한강공원"은 나온다.
+   */
+  mapQuery?: string;
   /** 한줄평. */
   note: string;
   minutes: number;
@@ -57,11 +64,13 @@ export type TrailView = {
 
 /**
  * 카카오맵 검색 링크.
- * 지도를 화면에 띄우려면 앱키가 필요하지만, 링크는 키 없이 된다 —
- * "이 산책로가 어디인지"는 이것만으로 해결된다.
+ * 지도를 화면에 띄우려면 앱키가 필요하지만, 링크는 키 없이 된다.
+ *
+ * 검색어는 실제 장소명이어야 한다 — 별칭을 넣으면 결과가 0건으로 나온다.
+ * 그래서 견주가 적은 장소명(mapQuery)을 우선 쓰고, 없을 때만 산책로 이름으로 찾는다.
  */
-export const kakaoMapUrl = (district: string, name: string) =>
-  `https://map.kakao.com/link/search/${encodeURIComponent(`${district} ${name}`)}`;
+export const kakaoMapUrl = (district: string, query: string) =>
+  `https://map.kakao.com/link/search/${encodeURIComponent(`${district} ${query}`)}`;
 
 export function toTrailView(trail: Trail, myDistrict: string | undefined, walksAtNight: boolean): TrailView {
   return {
@@ -75,6 +84,6 @@ export function toTrailView(trail: Trail, myDistrict: string | undefined, walksA
       walksAtNight && !trail.tags.includes('야간조명있음')
         ? '밤에는 어두울 수 있어요. 조명이 있는 길을 먼저 확인해보세요.'
         : '',
-    mapUrl: kakaoMapUrl(trail.district, trail.name),
+    mapUrl: kakaoMapUrl(trail.district, trail.mapQuery?.trim() || trail.name),
   };
 }
