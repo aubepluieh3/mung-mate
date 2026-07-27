@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluateGate } from '../src/gate.ts';
-import type { Dog } from '../src/dog.ts';
+import { formatAge, type Dog } from '../src/dog.ts';
 
 const dog = (over: Partial<Dog> = {}): Dog => ({
   id: 'd',
@@ -130,4 +130,15 @@ test('성향 태그는 게이트 판정에 영향을 주지 않는다', () => {
   const tagged = dog({ temperaments: ['겁많음', '짖음많음'] });
   const other = dog({ id: 'x', name: '까미', weightKg: 13, temperaments: ['활발함'] });
   assert.deepEqual(evaluateGate(base, other), evaluateGate(tagged, other));
+});
+
+test('나이는 견주가 말하는 방식으로 적는다', () => {
+  // 살로만 쓰면 6개월 강아지가 "0살"이 된다. 퍼피는 개월이 판정을 가르는 값이다
+  assert.equal(formatAge(3), '3개월');
+  assert.equal(formatAge(6), '6개월');
+  assert.equal(formatAge(12), '1살');
+  assert.equal(formatAge(18), '1살 6개월');
+  assert.equal(formatAge(24), '2살');
+  assert.equal(formatAge(30), '2살'); // 두 살이 넘으면 개월은 의미가 없다
+  assert.equal(formatAge(156), '13살');
 });

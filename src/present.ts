@@ -1,4 +1,4 @@
-import type { Dog } from './dog.ts';
+import { formatAge, type Dog } from './dog.ts';
 import type { MatchCandidate, MatchGroup } from './match.ts';
 import type { JoinCheck, Walk } from './walk.ts';
 import { conj, topic } from './josa.ts';
@@ -140,7 +140,7 @@ export function toView(m: MatchCandidate, requested = false): MatchView {
     requested,
     id: dog.id,
     name: dog.name,
-    subtitle: `${dog.breed} · ${dog.weightKg}kg · ${Math.floor(dog.ageMonths / 12)}살`,
+    subtitle: `${dog.breed} · ${dog.weightKg}kg · ${formatAge(dog.ageMonths)}`,
     reach: reachOf(m),
     ...verdictOf(m),
     highlight: highlightOf(m),

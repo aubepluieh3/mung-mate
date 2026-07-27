@@ -1,6 +1,7 @@
 import { findMatches } from '../src/match.ts';
 import { toView, GROUP_HEADING, firstMeetingNotice } from '../src/present.ts';
 import { me, allDogs, districts } from '../sample/neighborhood.ts';
+import { formatAge } from '../src/dog.ts';
 
 /** 견주가 실제로 보게 될 화면. 점수와 계산식은 나오지 않는다. */
 /** 사용법: node --experimental-strip-types scripts/demo.ts [강아지이름] */

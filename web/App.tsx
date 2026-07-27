@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { MatchGroup } from '../src/match.ts';
 import type { MatchView } from '../src/present.ts';
-import type { Dog } from '../src/dog.ts';
+import { formatAge, type Dog } from '../src/dog.ts';
 import { ProfileForm } from './ProfileForm.tsx';
 import { Walks } from './Walks.tsx';
 import { Trails } from './Trails.tsx';
@@ -196,7 +196,7 @@ export function App() {
           <div>
             <strong>{dog.name}</strong>
             <span className="subtitle">
-              {dog.breed} · {dog.weightKg}kg · {Math.floor(dog.ageMonths / 12)}살
+              {dog.breed} · {dog.weightKg}kg · {formatAge(dog.ageMonths)}
             </span>
             <p className="my-tags">{profileSummary(dog)}</p>
           </div>

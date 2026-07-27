@@ -15,6 +15,20 @@ export type MeetPreference = '1:1만' | '비슷한체급만' | '조용한친구�
 /** 주로 산책하는 시간대. 실제로 만날 수 있는지를 가르는 값이다. */
 export type WalkTime = '아침' | '점심' | '저녁' | '밤';
 
+/**
+ * 나이를 견주가 말하는 방식으로 적는다.
+ *
+ * 살로만 쓰면 6개월 강아지가 "0살"이 된다. 퍼피는 개월이 판정을 가르는 값이기도 하다
+ * (4개월 미만은 접종 전이라 차단). 두 살이 넘으면 개월은 의미가 없어 살만 쓴다.
+ */
+export const formatAge = (ageMonths: number): string => {
+  const years = Math.floor(ageMonths / 12);
+  const months = ageMonths % 12;
+  if (years === 0) return `${months}개월`;
+  if (years < 2 && months > 0) return `${years}살 ${months}개월`;
+  return `${years}살`;
+};
+
 export type Dog = {
   id: string;
   name: string;
