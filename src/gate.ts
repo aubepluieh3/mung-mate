@@ -73,23 +73,40 @@ const sizeGap: Rule = (a, b) => {
 
 const isInHeat = (d: Dog) => d.sex === 'female' && !d.neutered && d.inHeat === true;
 
-/** 발정 중 암컷 × 수컷. 견주 본인이 곤란해지는 일이라 정직하게 적을 이유가 있는 항목. */
+/**
+ * 발정 중 암컷.
+ * 견주 본인이 곤란해지는 일이라 정직하게 적을 이유가 있는 항목이다.
+ *
+ * 발정기 산책 자체는 막지 않는 게 통설이지만, 권고는 일관되게 "다른 개와의 접촉을 피하라"다.
+ * 그런데 이 앱은 다른 개와 만나는 게 목적이고, 게다가 사람 많은 장소를 권한다 —
+ * 사람이 많은 곳은 개도 많은 곳이다. 그래서 상대가 암컷이어도 경고는 띄운다.
+ */
 const heatCycle: Rule = (a, b) => {
-  const pairs: [Dog, Dog][] = [
-    [a, b],
-    [b, a],
-  ];
-  for (const [female, other] of pairs) {
-    if (!isInHeat(female) || other.sex !== 'male') continue;
-    return {
-      code: 'IN_HEAT',
-      level: other.neutered ? 'caution' : 'block',
-      message: other.neutered
-        ? `${subj(female.name)} 발정 중입니다. 중성화한 수컷도 반응할 수 있으니 거리를 두세요.`
-        : `${subj(female.name)} 발정 중이고 ${topic(other.name)} 중성화하지 않은 수컷입니다. 이 시기에는 만나지 않는 게 좋습니다.`,
-    };
+  const female = [a, b].find(isInHeat);
+  if (!female) return null;
+  const other = female === a ? b : a;
+
+  if (other.sex === 'male') {
+    return other.neutered
+      ? {
+          code: 'IN_HEAT_MALE',
+          level: 'caution',
+          message: `${subj(female.name)} 발정 중입니다. 중성화한 수컷도 페로몬에 반응할 수 있으니, 목줄을 짧게 잡고 거리를 두세요.`,
+        }
+      : {
+          code: 'IN_HEAT_INTACT_MALE',
+          level: 'block',
+          message: `${subj(female.name)} 발정 중이고 ${topic(other.name)} 중성화하지 않은 수컷입니다. 이 시기에는 만나지 않는 게 좋습니다.`,
+        };
   }
-  return null;
+
+  // 암컷끼리는 페로몬으로 인한 직접 위험은 없다. 다만 산책로에서 수컷을 만나는 건 막을 수 없고,
+  // 발정 암컷이 근처에 있으면 수컷끼리 싸움이 나기도 한다.
+  return {
+    code: 'IN_HEAT_WALK',
+    level: 'caution',
+    message: `${subj(female.name)} 발정 중입니다. 산책로에서 다른 수컷을 만날 수 있으니, 이른 아침이나 밤처럼 조용한 시간대에 만나는 걸 권해요.`,
+  };
 };
 
 /** 미중성화 성견 수컷끼리는 서로 신경전이 붙기 쉽다. 흔한 조합이라 차단하지 않고 경고만. */

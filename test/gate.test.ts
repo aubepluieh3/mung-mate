@@ -58,8 +58,20 @@ test('발정 중 암컷 × 미중성화 수컷은 차단, 중성화 수컷은 �
   const fixed = dog({ id: 'm2', name: '두부', neutered: true });
 
   assert.equal(evaluateGate(inHeat, intact).level, 'block');
+  assert.deepEqual(codes(inHeat, intact), ['IN_HEAT_INTACT_MALE']);
   assert.equal(evaluateGate(inHeat, fixed).level, 'caution');
-  assert.deepEqual(codes(inHeat, fixed), ['IN_HEAT']);
+  assert.deepEqual(codes(inHeat, fixed), ['IN_HEAT_MALE']);
+});
+
+test('발정 중이면 상대가 암컷이어도 경고한다', () => {
+  // 암컷끼리 페로몬 위험은 없지만, 산책로에서 수컷을 만나는 건 막을 수 없다
+  const inHeat = dog({ id: 'f', name: '나비', sex: 'female', neutered: false, inHeat: true });
+  const otherFemale = dog({ id: 'f2', name: '토리', sex: 'female', neutered: true, weightKg: 13 });
+
+  const result = evaluateGate(inHeat, otherFemale);
+  assert.equal(result.level, 'caution');
+  assert.deepEqual(codes(inHeat, otherFemale), ['IN_HEAT_WALK']);
+  assert.match(result.findings[0].message, /조용한 시간대/);
 });
 
 test('중성화한 암컷은 발정 룰에 걸리지 않는다', () => {
