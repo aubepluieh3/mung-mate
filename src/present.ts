@@ -111,8 +111,8 @@ const guidanceOf = (m: MatchCandidate): string => {
  * 게이트 경고가 가장 중요하고, 그다음이 성향 충돌, 마지막이 체급·나이 차이다.
  */
 const watchOutsOf = (m: MatchCandidate): string[] => {
-  if (m.group === 'blocked') return [];
-
+  // 차단된 조합에도 이유를 보여준다. 대안만 주고 이유를 숨기면 견주는 판단을 신뢰하지 않고,
+  // 무엇이 위험한지 배우지도 못한다. 차단이면 match 단계에서 이미 차단 사유만 남아 있다.
   const fromGate = m.gate.findings.map((f) => f.message);
   const fromTags = [...m.pairs]
     .filter((p) => p.delta < 0 && p.note)

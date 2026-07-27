@@ -86,9 +86,21 @@ test('경고가 있어도 좋은 점을 같이 보여준다', () => {
   assert.equal(byeol.requestable, true);
 });
 
-test('차단된 상대에게는 주의사항을 나열하지 않는다', () => {
-  assert.deepEqual(byName('초코').watchOuts, []);
-  assert.equal(byName('초코').highlight, undefined);
+test('차단된 조합은 이유를 반드시 보여준다', () => {
+  // 안전이 최우선이다. 대안만 주고 왜 위험한지 숨기면 견주는 판단을 신뢰하지 않는다
+  const choco = byName('초코');
+  assert.ok(choco.watchOuts.length > 0);
+  assert.match(choco.watchOuts[0], /체급이 3\.\d배 차이/);
+  assert.match(choco.watchOuts[0], /크게 다칠 수 있습니다/);
+  // 궁합 강점은 보여주지 않는다 — 만나면 안 되는 조합에 좋은 점을 붙일 이유가 없다
+  assert.equal(choco.highlight, undefined);
+});
+
+test('차단 이유에 부가 경고를 섞지 않는다', () => {
+  // 새싹은 접종 미완료(차단) + 체급 2배(경고)인데, 정작 중요한 차단 사유가 묻히면 안 된다
+  const saessak = byName('새싹');
+  assert.equal(saessak.watchOuts.length, 1);
+  assert.match(saessak.watchOuts[0], /예방접종/);
 });
 
 test('성향을 안 적은 상대는 위험한 게 아니라 정보가 없는 것으로 표현한다', () => {
