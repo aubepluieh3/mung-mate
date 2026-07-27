@@ -85,10 +85,14 @@ h1 {
 .profile-form .row {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
+/* 좁은 폭에서는 한 줄에 못 넣는다. 150px 아래로 눌리면 줄을 바꿔서 숫자가 잘리지 않게 한다.
+   min-width: 0 이 없으면 flex 아이템이 줄지 않아 화면을 넘긴다. */
 .profile-form .row > label {
-  flex: 1;
+  flex: 1 1 150px;
+  min-width: 0;
 }
 
 .profile-form input[type='text'],
@@ -115,13 +119,16 @@ h1 {
 }
 
 .age input {
-  width: 80px !important;
+  flex: 1;
+  min-width: 44px; /* 숫자 두 자리는 보여야 한다 */
+  width: auto !important;
   margin-top: 0 !important;
 }
 
 .age span {
   font-size: 14px;
   color: var(--text);
+  white-space: nowrap; /* 좁은 폭에서 "개월"이 두 줄로 깨지지 않게 */
 }
 
 .profile-form fieldset {
@@ -187,6 +194,43 @@ label.inline input {
   background: #eef6f1;
   border: 1px solid #cfe4d8;
   border-radius: 8px;
+}
+
+/* 보냈지만 지금은 권하지 않는 조합이 된 요청 */
+.requested.stale {
+  color: var(--careful);
+  background: #fdf6ec;
+  border-color: #eedcc0;
+  font-weight: 500;
+  text-align: left;
+  line-height: 1.5;
+}
+
+.form-intro {
+  margin: -8px 0 16px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.empty {
+  margin: 20px 0 8px;
+  padding: 18px 16px;
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.empty p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.empty .ghost {
+  margin: 0;
 }
 
 .notice {

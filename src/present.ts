@@ -1,3 +1,4 @@
+import type { Dog } from './dog.ts';
 import type { MatchCandidate } from './match.ts';
 import { conj, topic } from './josa.ts';
 
@@ -155,9 +156,29 @@ export const GROUP_HEADING = {
   blocked: '이번에는 권하지 않는 조합',
 } as const;
 
-/** 목록 맨 위에 한 번 보여줄 안내. */
+/** 요청을 보내기로 결정한 순간에 보여줄 안내. 목록 위에 띄워두면 읽지 않고 지나간다. */
 export const firstMeetingNotice =
   '처음 만나는 친구와는 사람이 많은 공개된 장소에서 만나주세요. 서로의 집 앞은 텃세가 생기기 쉽습니다.';
+
+/**
+ * 만날 수 있는 친구가 하나도 없을 때, 왜 없고 무엇을 하면 되는지 알려준다.
+ * 빈 화면만 보여주면 견주는 앱이 고장난 줄 알고 떠난다.
+ */
+export function emptyReachableMessage(me: Dog, candidates: MatchCandidate[]): string {
+  if (!me.district) {
+    return '동네를 아직 안 적으셨어요. 동네를 고르면 근처 친구를 찾아드릴 수 있어요.';
+  }
+  if (!me.walkTimes?.length) {
+    return '주로 산책하는 시간대를 고르면, 그 시간에 나오는 친구를 찾아드릴 수 있어요.';
+  }
+  if (me.ageMonths > 0 && me.ageMonths < 4) {
+    return '아직 예방접종을 마치기 전이라 다른 친구를 권하지 않아요. 접종을 마친 뒤에 다시 찾아보세요.';
+  }
+  if (candidates.length > 0 && candidates.every((c) => c.group === 'blocked')) {
+    return '지금은 함께 걷기를 권할 친구가 없어요. 아래에서 이유를 확인해보세요.';
+  }
+  return `${me.district}에 같은 시간대로 산책하는 친구가 아직 없어요. 산책 시간대를 더 고르면 만날 친구가 늘어납니다.`;
+}
 
 /** 상대에게 내가 어떻게 보이는지 — 프로필을 안 채운 견주에게 보여줄 안내. */
 export const emptyProfileNudge = (dogName: string) =>

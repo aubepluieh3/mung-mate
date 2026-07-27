@@ -17,13 +17,17 @@ type Props = {
   dog: Dog;
   districts: string[];
   onSave: (dog: Dog) => void;
-  onCancel: () => void;
+  /** 처음 등록하는 중이면 없다 — 취소할 이전 프로필이 없다. */
+  onCancel?: () => void;
 };
 
 export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
+  const isNew = !onCancel;
   const [draft, setDraft] = useState<Dog>(dog);
   const [years, setYears] = useState(Math.floor(dog.ageMonths / 12));
   const [months, setMonths] = useState(dog.ageMonths % 12);
+  // 성별은 발정·미중성화 수컷 룰에 직결된다. 기본값을 넣어두면 안 바꾸고 지나쳐 판정이 틀린다
+  const [sexPicked, setSexPicked] = useState(!isNew);
   const [error, setError] = useState('');
 
   const patch = (over: Partial<Dog>) => setDraft((d) => ({ ...d, ...over }));
@@ -52,6 +56,7 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
   const submit = () => {
     if (!draft.name.trim()) return setError('이름을 적어주세요.');
     if (!(draft.weightKg > 0)) return setError('몸무게를 적어주세요.');
+    if (!sexPicked) return setError('성별을 골라주세요.');
 
     onSave({
       ...draft,
@@ -67,7 +72,12 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
 
   return (
     <div className="profile-form">
-      <h2>내 강아지 정보</h2>
+      <h2>{isNew ? '우리 강아지를 등록해주세요' : '내 강아지 정보'}</h2>
+      {isNew && (
+        <p className="form-intro">
+          입력한 정보로 맞는 산책 친구를 찾아드려요. 정확한 주소는 받지 않고 동네까지만 씁니다.
+        </p>
+      )}
 
       <label>
         이름
@@ -126,8 +136,11 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
           <label key={sex} className="inline">
             <input
               type="radio"
-              checked={draft.sex === sex}
-              onChange={() => patch({ sex })}
+              checked={sexPicked && draft.sex === sex}
+              onChange={() => {
+                setSexPicked(true);
+                patch({ sex });
+              }}
             />
             {sex === 'male' ? '수컷' : '암컷'}
           </label>
@@ -143,7 +156,7 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
       </fieldset>
 
       {/* 미중성화 암컷에게만 묻는다. 견주 본인이 곤란해지는 일이라 정직하게 적을 이유가 있다 */}
-      {draft.sex === 'female' && !draft.neutered && (
+      {sexPicked && draft.sex === 'female' && !draft.neutered && (
         <label className="inline highlight-field">
           <input
             type="checkbox"
@@ -213,11 +226,13 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
 
       <div className="request-actions">
         <button type="button" className="primary" onClick={submit}>
-          저장
+          {isNew ? '등록하고 친구 찾기' : '저장'}
         </button>
-        <button type="button" className="ghost" onClick={onCancel}>
-          취소
-        </button>
+        {onCancel && (
+          <button type="button" className="ghost" onClick={onCancel}>
+            취소
+          </button>
+        )}
       </div>
     </div>
   );
