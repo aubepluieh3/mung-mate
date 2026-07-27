@@ -33,8 +33,7 @@ const SPREAD = 2;
 const MIN_TAG_FIT = 5;
 const STALE_TAG_MONTHS = 6;
 const STALE_TAG_WEIGHT = 0.5;
-const AGE_GAP_MONTHS = 60;
-const WIDE_AGE_GAP_MONTHS = 96;
+const AGE_GAP_MONTHS = 60; // 5살
 
 /**
  * 태그 궁합 매트릭스. 대칭이므로 한쪽 방향만 정의한다.
@@ -208,11 +207,10 @@ const overwhelmFactor = (a: Dog, b: Dog): Factor | null => {
 const sizeFactor = (a: Dog, b: Dog): Factor | null => {
   const [light, heavy] = a.weightKg <= b.weightKg ? [a, b] : [b, a];
   const ratio = heavy.weightKg / light.weightKg;
-  const tier = ratio >= 2 ? 0.7 : ratio >= 1.5 ? 0.85 : ratio >= 1.25 ? 0.95 : null;
-  if (tier === null) return null;
+  if (ratio < 1.5) return null;
   return {
     code: 'SIZE_GAP',
-    multiplier: tier,
+    multiplier: ratio >= 2 ? 0.7 : 0.85,
     note: `체급이 ${ratio.toFixed(1)}배 차이납니다.`,
   };
 };
@@ -222,7 +220,7 @@ const ageFactor = (a: Dog, b: Dog): Factor | null => {
   if (gap < AGE_GAP_MONTHS) return null;
   return {
     code: 'AGE_GAP',
-    multiplier: gap >= WIDE_AGE_GAP_MONTHS ? 0.8 : 0.9,
+    multiplier: 0.85,
     note: `나이가 ${Math.floor(gap / 12)}살 차이납니다. 놀이 방식이 다를 수 있습니다.`,
   };
 };

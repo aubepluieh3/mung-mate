@@ -24,7 +24,8 @@ export type GateResult = {
 };
 
 const VACCINATION_MIN_MONTHS = 4; // 16주. 접종 완료 전에는 개-개 접촉을 권하지 않는다
-const SMALL_DOG_KG = 10;
+const BLOCK_WEIGHT_RATIO = 3; // 이 이상 차이나면 큰 개가 놀다가도 작은 개가 다친다
+const CAUTION_WEIGHT_RATIO = 2;
 const SENIOR_MONTHS = 9 * 12;
 const PUPPY_MONTHS = 12;
 const ADULT_MONTHS = 12;
@@ -42,26 +43,19 @@ const vaccination: Rule = (a, b) => {
   };
 };
 
-/** 체급은 절대 차이가 아니라 비율로 본다. 단, 작은 쪽이 소형견이면 더 엄격하게. */
+/** 체급은 절대 차이가 아니라 비율로 본다. 3kg 대 10kg 이 30kg 대 40kg 보다 위험하다. */
 const sizeGap: Rule = (a, b) => {
   const [light, heavy] = a.weightKg <= b.weightKg ? [a, b] : [b, a];
   const ratio = heavy.weightKg / light.weightKg;
 
-  if (light.weightKg < SMALL_DOG_KG && ratio >= 3) {
+  if (ratio >= BLOCK_WEIGHT_RATIO) {
     return {
-      code: 'SIZE_GAP_SMALL_DOG',
+      code: 'SIZE_GAP_BLOCK',
       level: 'block',
-      message: `${conj(light.name)} ${topic(heavy.name)} 체급이 ${ratio.toFixed(1)}배 차이납니다(${light.weightKg}kg / ${heavy.weightKg}kg). 큰 개가 놀다가 건드려도 소형견은 크게 다칠 수 있습니다.`,
+      message: `${conj(light.name)} ${topic(heavy.name)} 체급이 ${ratio.toFixed(1)}배 차이납니다(${light.weightKg}kg / ${heavy.weightKg}kg). 큰 개가 놀다가 건드려도 작은 개는 크게 다칠 수 있습니다.`,
     };
   }
-  if (ratio >= 4) {
-    return {
-      code: 'SIZE_GAP_EXTREME',
-      level: 'block',
-      message: `체급이 ${ratio.toFixed(1)}배 차이납니다. 함께 뛰노는 산책은 권하지 않습니다.`,
-    };
-  }
-  if (ratio >= 2) {
+  if (ratio >= CAUTION_WEIGHT_RATIO) {
     return {
       code: 'SIZE_GAP',
       level: 'caution',
@@ -86,26 +80,20 @@ const heatCycle: Rule = (a, b) => {
   if (!female) return null;
   const other = female === a ? b : a;
 
-  if (other.sex === 'male') {
-    return other.neutered
-      ? {
-          code: 'IN_HEAT_MALE',
-          level: 'caution',
-          message: `${subj(female.name)} 발정 중입니다. 중성화한 수컷도 페로몬에 반응할 수 있으니, 목줄을 짧게 잡고 거리를 두세요.`,
-        }
-      : {
-          code: 'IN_HEAT_INTACT_MALE',
-          level: 'block',
-          message: `${subj(female.name)} 발정 중이고 ${topic(other.name)} 중성화하지 않은 수컷입니다. 이 시기에는 만나지 않는 게 좋습니다.`,
-        };
+  if (other.sex === 'male' && !other.neutered) {
+    return {
+      code: 'IN_HEAT_INTACT_MALE',
+      level: 'block',
+      message: `${subj(female.name)} 발정 중이고 ${topic(other.name)} 중성화하지 않은 수컷입니다. 이 시기에는 만나지 않는 게 좋습니다.`,
+    };
   }
 
-  // 암컷끼리는 페로몬으로 인한 직접 위험은 없다. 다만 산책로에서 수컷을 만나는 건 막을 수 없고,
-  // 발정 암컷이 근처에 있으면 수컷끼리 싸움이 나기도 한다.
+  // 중성화한 수컷도 페로몬에 반응하고, 암컷끼리라도 산책로에서 수컷을 만나는 건 막을 수 없다.
+  // 상대가 누구든 조용한 시간대를 권하는 것으로 하나로 묶는다.
   return {
-    code: 'IN_HEAT_WALK',
+    code: 'IN_HEAT',
     level: 'caution',
-    message: `${subj(female.name)} 발정 중입니다. 산책로에서 다른 수컷을 만날 수 있으니, 이른 아침이나 밤처럼 조용한 시간대에 만나는 걸 권해요.`,
+    message: `${subj(female.name)} 발정 중입니다. 다른 수컷을 만날 수 있으니 목줄을 짧게 잡고, 이른 아침이나 밤처럼 조용한 시간대에 만나는 걸 권해요.`,
   };
 };
 

@@ -30,16 +30,16 @@ test('접종 전 강아지는 차단한다', () => {
   assert.ok(codes(dog(), dog({ ageMonths: 3, weightKg: 4 })).includes('VACCINATION_INCOMPLETE'));
 });
 
-test('소형견과 3배 차이는 차단한다', () => {
+test('체급이 3배 이상 차이나면 차단한다', () => {
   const small = dog({ id: 's', name: '토리', weightKg: 4 });
   const big = dog({ id: 'b', name: '바둑', weightKg: 13 });
   const result = evaluateGate(small, big);
   assert.equal(result.level, 'block');
-  assert.deepEqual(codes(small, big), ['SIZE_GAP_SMALL_DOG']);
+  assert.deepEqual(codes(small, big), ['SIZE_GAP_BLOCK']);
 });
 
-test('둘 다 중대형이면 3배 차이는 경고까지만', () => {
-  const result = evaluateGate(dog({ weightKg: 12 }), dog({ id: 'b', weightKg: 34 }));
+test('체급이 2배 이상 3배 미만이면 경고까지만', () => {
+  const result = evaluateGate(dog({ weightKg: 12 }), dog({ id: 'b', weightKg: 34 })); // 2.8배
   assert.equal(result.level, 'caution');
   assert.deepEqual(
     result.findings.map((f) => f.code),
@@ -47,9 +47,10 @@ test('둘 다 중대형이면 3배 차이는 경고까지만', () => {
   );
 });
 
-test('중대형끼리도 4배를 넘으면 차단한다', () => {
-  const result = evaluateGate(dog({ weightKg: 11 }), dog({ id: 'b', weightKg: 45 }));
-  assert.equal(result.level, 'block');
+test('체급 판정은 절대 차이가 아니라 비율로 한다', () => {
+  // 3kg 대 10kg(7kg 차이)이 30kg 대 40kg(10kg 차이)보다 위험하다
+  assert.equal(evaluateGate(dog({ weightKg: 3 }), dog({ id: 'b', weightKg: 10 })).level, 'block');
+  assert.equal(evaluateGate(dog({ weightKg: 30 }), dog({ id: 'b', weightKg: 40 })).level, 'ok');
 });
 
 test('발정 중 암컷 × 미중성화 수컷은 차단, 중성화 수컷은 경고', () => {
@@ -60,7 +61,7 @@ test('발정 중 암컷 × 미중성화 수컷은 차단, 중성화 수컷은 �
   assert.equal(evaluateGate(inHeat, intact).level, 'block');
   assert.deepEqual(codes(inHeat, intact), ['IN_HEAT_INTACT_MALE']);
   assert.equal(evaluateGate(inHeat, fixed).level, 'caution');
-  assert.deepEqual(codes(inHeat, fixed), ['IN_HEAT_MALE']);
+  assert.deepEqual(codes(inHeat, fixed), ['IN_HEAT']);
 });
 
 test('발정 중이면 상대가 암컷이어도 경고한다', () => {
@@ -70,7 +71,7 @@ test('발정 중이면 상대가 암컷이어도 경고한다', () => {
 
   const result = evaluateGate(inHeat, otherFemale);
   assert.equal(result.level, 'caution');
-  assert.deepEqual(codes(inHeat, otherFemale), ['IN_HEAT_WALK']);
+  assert.deepEqual(codes(inHeat, otherFemale), ['IN_HEAT']);
   assert.match(result.findings[0].message, /조용한 시간대/);
 });
 

@@ -103,7 +103,7 @@ test('체급과 나이는 감점이 아니라 곱셈 계수로 들어간다', ()
   assert.equal(computeScore(me, same, NOW).tagFit, 90);
   assert.equal(score(me, same), 90);
   assert.equal(score(me, bigger), Math.round(90 * 0.85)); // 1.9배
-  assert.equal(score(me, older), Math.round(90 * 0.8)); // 9살 차이
+  assert.equal(score(me, older), Math.round(90 * 0.85)); // 9살 차이
   // 태그 궁합은 그대로 남아 있고 계수만 곱해진다
   assert.equal(computeScore(me, bigger, NOW).tagFit, 90);
 });

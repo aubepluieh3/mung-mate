@@ -28,10 +28,18 @@ test('점수와 계산식은 화면에 나오지 않는다', () => {
 });
 
 test('등급은 점수 대신 문장으로 나온다', () => {
-  assert.equal(byName('보리').verdict, '잘 맞을 것 같아요'); // 90점
-  assert.equal(byName('할부지').verdict, '괜찮은 편이에요'); // 68점
-  assert.equal(byName('까미').verdict, '천천히 만나보세요'); // 38점
-  assert.equal(byName('방울').verdict, '성향이 많이 달라요'); // 8점
+  assert.equal(byName('보리').verdict, '잘 맞을 것 같아요');
+  assert.equal(byName('뭉치').verdict, '괜찮은 편이에요'); // 프로필이 오래돼 중립으로 당겨졌다
+  assert.equal(byName('까미').verdict, '천천히 만나보세요');
+  assert.equal(byName('방울').verdict, '성향이 많이 달라요');
+});
+
+test('만날 수 없는 상대는 최상위 등급으로 올리지 않는다', () => {
+  // 할부지는 궁합 점수가 높지만 먼 동네에 산다.
+  // "먼 동네에 살아요 / 잘 맞을 것 같아요" 는 만날 수 있다는 기대를 준다
+  const grandpa = byName('할부지');
+  assert.match(grandpa.reach, /먼 동네/);
+  assert.notEqual(grandpa.verdict, '잘 맞을 것 같아요');
 });
 
 test('안전 경고가 붙은 조합은 최상위 등급으로 올리지 않는다', () => {

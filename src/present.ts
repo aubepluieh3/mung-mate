@@ -47,8 +47,7 @@ const NEUTRAL_TAG_FIT = 50;
 /** 차단 사유별로 다음에 뭘 하면 되는지 알려준다. 막기만 하면 견주는 앱을 떠난다. */
 const ALTERNATIVE: Record<string, string> = {
   VACCINATION_INCOMPLETE: '접종을 마친 뒤에 다시 만나보세요.',
-  SIZE_GAP_SMALL_DOG: '체급이 비슷한 친구부터 찾아보시는 걸 권해요.',
-  SIZE_GAP_EXTREME: '체급이 비슷한 친구부터 찾아보시는 걸 권해요.',
+  SIZE_GAP_BLOCK: '체급이 비슷한 친구부터 찾아보시는 걸 권해요.',
   IN_HEAT_INTACT_MALE: '발정이 끝난 뒤에 다시 확인해보세요.',
 };
 
@@ -57,9 +56,11 @@ const verdictOf = (m: MatchCandidate): { tier: MatchTier; verdict: string } => {
   if (m.score === null) return { tier: 'unknown', verdict: '아직 성향을 적지 않은 친구예요' };
 
   const base = VERDICTS.findIndex((v) => m.score! >= v.min);
-  // 안전 경고가 붙은 조합을 최상위 등급으로 올리지 않는다.
-  // 점수가 높다고 안내를 완화하면 그 방심이 사고를 만든다.
-  const index = Math.min(base + (m.gate.findings.length > 0 ? 1 : 0), VERDICTS.length - 1);
+  // 등급을 한 단계 내리는 경우:
+  // - 안전 경고가 붙었다. 점수가 높다고 안내를 완화하면 그 방심이 사고를 만든다
+  // - 만날 수 없다. "잘 맞을 것 같아요"는 만날 수 있다는 기대를 준다
+  const demote = m.gate.findings.length > 0 || m.group === 'far';
+  const index = Math.min(base + (demote ? 1 : 0), VERDICTS.length - 1);
   const { tier, label } = VERDICTS[index];
 
   if (tier === 'low') {
