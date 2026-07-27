@@ -507,3 +507,10 @@ button:disabled {
   font-weight: 700;
   border-bottom-color: var(--text);
 }
+
+.trail-tags {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--fine);
+  line-height: 1.7;
+}

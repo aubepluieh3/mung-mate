@@ -2,11 +2,14 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { findMatches } from '../src/match.ts';
 import { buildMatchScreen, firstMeetingNotice, toWalkView } from '../src/present.ts';
 import { checkJoin, MAX_PARTICIPANTS, type Walk } from '../src/walk.ts';
+import { toTrailView, TRAIL_TAGS, type TrailTag } from '../src/trail.ts';
 import type { Dog, WalkTime } from '../src/dog.ts';
 import {
   addRequest,
   allDogs,
+  allTrails,
   allWalks,
+  createTrail,
   createWalk,
   districtGraph,
   findDog,
@@ -181,6 +184,54 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
       place,
       minutes: Math.round(minutes),
       capacity,
+    });
+    return [200, { ok: true }];
+  },
+
+  /**
+   * 근처 산책로. 내 동네를 먼저, 그다음 인접 동.
+   * 상대가 없어도 쓸 수 있는 기능이라 후보가 0명인 견주에게도 보여줄 게 있다.
+   */
+  'GET /api/trails': async (_req, url) => {
+    const dog = findDog(url.searchParams.get('dogId') ?? '');
+    if (!dog) return [404, { error: '등록된 프로필을 찾을 수 없습니다.' }];
+
+    const adjacent = dog.district ? (districtGraph[dog.district] ?? []) : [];
+    const walksAtNight = (dog.walkTimes ?? []).includes('밤');
+
+    const trails = allTrails()
+      .filter((t) => t.district === dog.district || adjacent.includes(t.district))
+      .map((t) => toTrailView(t, dog.district, walksAtNight))
+      .sort((a, b) => Number(b.nearby) - Number(a.nearby) || a.name.localeCompare(b.name, 'ko'));
+
+    return [200, { trails, tags: TRAIL_TAGS }];
+  },
+
+  /** 산책로 등록. */
+  'POST /api/trails': async (req) => {
+    const body = (await readBody(req)) as Record<string, unknown>;
+    const dog = findDog(String(body.dogId ?? ''));
+    if (!dog) return [404, { error: '등록된 프로필을 찾을 수 없습니다.' }];
+    if (!dog.district) return [400, { error: '동네를 먼저 적어주세요.' }];
+
+    const name = String(body.name ?? '').trim();
+    if (!name) throw new Error('산책로 이름을 적어주세요.');
+
+    const minutes = Number(body.minutes);
+    if (!Number.isFinite(minutes) || minutes < 5 || minutes > 240) {
+      throw new Error('걸리는 시간은 5분에서 240분 사이로 적어주세요.');
+    }
+
+    const allowed = new Set<string>(TRAIL_TAGS);
+    createTrail({
+      district: dog.district,
+      name,
+      note: String(body.note ?? '').trim(),
+      minutes: Math.round(minutes),
+      tags: (Array.isArray(body.tags)
+        ? [...new Set(body.tags.filter((t): t is string => allowed.has(t)))]
+        : []) as TrailTag[],
+      createdBy: dog.id,
     });
     return [200, { ok: true }];
   },

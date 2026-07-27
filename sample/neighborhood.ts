@@ -1,5 +1,6 @@
 import type { Dog, WalkTime } from '../src/dog.ts';
 import type { DistrictGraph } from '../src/reach.ts';
+import type { Trail } from '../src/trail.ts';
 
 /** 룰이 실제 목록에서 어떻게 보이는지 눈으로 확인하기 위한 동네 샘플. */
 
@@ -205,3 +206,39 @@ const others: Dog[] = [
 ];
 
 export const neighborhood: Dog[] = others.map(withWalkInfo);
+
+/** 산책로 샘플. 비어 있으면 첫 사용자가 볼 게 없다. */
+export const sampleTrails: Omit<Trail, 'id'>[] = [
+  {
+    district: '성산동',
+    name: '망원한강공원 산책길',
+    note: '넓고 평평해서 소형견도 편해요. 주말 오후는 사람이 많습니다.',
+    minutes: 40,
+    tags: ['배변봉투함있음', '물있음', '차없음', '야간조명있음'],
+    createdBy: 'me',
+  },
+  {
+    district: '성산동',
+    name: '성미산 둘레길',
+    note: '그늘이 많아 여름에 좋아요. 경사가 조금 있어 노견에게는 짧게.',
+    minutes: 30,
+    tags: ['그늘많음', '차없음'],
+    createdBy: 'bori',
+  },
+  {
+    district: '망원동',
+    name: '망원시장 뒷길',
+    note: '가까워서 밤 산책에 자주 갑니다. 조명이 어두운 구간이 있어요.',
+    minutes: 15,
+    tags: ['배변봉투함있음'],
+    createdBy: 'dubu',
+  },
+  {
+    district: '연남동',
+    name: '경의선숲길 반려견 놀이터',
+    note: '울타리가 있어 마음이 놓입니다. 체급별로 시간을 나눠 쓰면 좋아요.',
+    minutes: 25,
+    tags: ['울타리있음', '물있음', '배변봉투함있음', '야간조명있음'],
+    createdBy: 'mungchi',
+  },
+];

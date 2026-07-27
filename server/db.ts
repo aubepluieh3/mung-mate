@@ -1,7 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { Dog, MeetPreference, Sex, Temperament, WalkTime } from '../src/dog.ts';
 import type { Walk } from '../src/walk.ts';
-import { me, neighborhood, districts } from '../sample/neighborhood.ts';
+import type { Trail, TrailTag } from '../src/trail.ts';
+import { me, neighborhood, districts, sampleTrails } from '../sample/neighborhood.ts';
 
 /**
  * 저장소. Node 내장 sqlite 를 쓴다(의존성 없음).
@@ -55,6 +56,16 @@ db.exec(`
     dog_id    TEXT NOT NULL,
     joined_at TEXT NOT NULL,
     PRIMARY KEY (walk_id, dog_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS trails (
+    id         TEXT PRIMARY KEY,
+    district   TEXT NOT NULL,
+    name       TEXT NOT NULL,
+    note       TEXT NOT NULL DEFAULT '',
+    minutes    INTEGER NOT NULL,
+    tags       TEXT NOT NULL DEFAULT '[]',
+    created_by TEXT NOT NULL
   );
 `);
 
@@ -199,10 +210,44 @@ export const findWalk = (id: string): Walk | null => {
 export const joinWalk = (walkId: string, dogId: string) =>
   insertParticipant.run(walkId, dogId, new Date().toISOString());
 
+// --- 산책로 ---
+
+const insertTrail = db.prepare(
+  'INSERT INTO trails (id, district, name, note, minutes, tags, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+);
+const selectTrails = db.prepare('SELECT * FROM trails ORDER BY district, name');
+
+const toTrail = (row: Row): Trail => ({
+  id: String(row.id),
+  district: String(row.district),
+  name: String(row.name),
+  note: String(row.note ?? ''),
+  minutes: Number(row.minutes),
+  tags: parseList<TrailTag>(row.tags),
+  createdBy: String(row.created_by),
+});
+
+export function createTrail(trail: Omit<Trail, 'id'>): Trail {
+  const id = crypto.randomUUID();
+  insertTrail.run(
+    id,
+    trail.district,
+    trail.name,
+    trail.note,
+    trail.minutes,
+    JSON.stringify(trail.tags),
+    trail.createdBy,
+  );
+  return { ...trail, id };
+}
+
+export const allTrails = (): Trail[] => (selectTrails.all() as Row[]).map(toTrail);
+
 /** 동네가 비어 있으면 첫 사용자에게 후보가 0명이다. 샘플로 채워둔다. */
 export function seed() {
   const { count } = db.prepare('SELECT COUNT(*) AS count FROM dogs').get() as { count: number };
   if (count > 0) return count;
   for (const dog of [me, ...neighborhood]) saveDog(dog);
+  for (const trail of sampleTrails) createTrail(trail);
   return [me, ...neighborhood].length;
 }
