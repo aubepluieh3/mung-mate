@@ -17,6 +17,8 @@ import { conj, topic } from './josa.ts';
 export type MatchTier = 'good' | 'fine' | 'careful' | 'low' | 'unknown' | 'blocked';
 
 export type MatchView = {
+  /** 요청 상태 같은 걸 붙일 때 이름 대신 이걸 쓴다. 동명이 있을 수 있다. */
+  id: string;
   name: string;
   /** "말티즈 · 7kg · 3살" */
   subtitle: string;
@@ -131,6 +133,7 @@ const highlightOf = (m: MatchCandidate): string | undefined => {
 export function toView(m: MatchCandidate): MatchView {
   const { dog } = m;
   return {
+    id: dog.id,
     name: dog.name,
     subtitle: `${dog.breed} · ${dog.weightKg}kg · ${Math.floor(dog.ageMonths / 12)}살`,
     reach: reachOf(m),

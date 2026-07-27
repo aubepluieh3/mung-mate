@@ -33,13 +33,68 @@ h1 {
   margin: 0 0 16px;
 }
 
-header label {
-  display: block;
+.my-dog {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.my-dog strong {
+  font-size: 17px;
+  margin-right: 8px;
+}
+
+.my-dog .ghost {
+  margin-top: 0;
+  flex-shrink: 0;
+  padding: 8px 14px;
+}
+
+.my-tags {
+  margin: 6px 0 0;
   font-size: 13px;
   color: var(--muted);
 }
 
-header select {
+/* --- 프로필 폼 --- */
+
+.profile-form {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.profile-form h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+.profile-form label:not(.inline) {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.profile-form .row {
+  display: flex;
+  gap: 12px;
+}
+
+.profile-form .row > label {
+  flex: 1;
+}
+
+.profile-form input[type='text'],
+.profile-form input:not([type]),
+.profile-form input[type='number'],
+.profile-form select {
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -48,14 +103,90 @@ header select {
   font-family: inherit;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: var(--card);
+  background: var(--bg);
   color: inherit;
 }
 
-.my-tags {
-  margin: 8px 0 0;
+.age {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.age input {
+  width: 80px !important;
+  margin-top: 0 !important;
+}
+
+.age span {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.profile-form fieldset {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.profile-form legend {
   font-size: 13px;
   color: var(--muted);
+  padding: 0 4px;
+}
+
+label.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 4px 14px 4px 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+label.inline input {
+  width: auto;
+  margin: 0;
+}
+
+.highlight-field {
+  display: flex !important;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: #fff8e8;
+  border: 1px solid #f0e0bc;
+  border-radius: 8px;
+  flex-wrap: wrap;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.error {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #8a3b3b;
+  background: #fdf0f0;
+  border: 1px solid #f0d0d0;
+  border-radius: 8px;
+}
+
+.requested {
+  margin: 12px 0 0;
+  padding: 11px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--good);
+  background: #eef6f1;
+  border: 1px solid #cfe4d8;
+  border-radius: 8px;
 }
 
 .notice {

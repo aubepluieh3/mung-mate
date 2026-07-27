@@ -101,3 +101,9 @@ test('성향을 안 적은 상대는 위험한 게 아니라 정보가 없는 �
 test('견종·체급·나이는 그대로 보여준다', () => {
   assert.equal(byName('보리').subtitle, '말티즈 · 7kg · 3살');
 });
+
+test('뷰에 id 가 있어 요청 상태를 이름이 아니라 id 로 붙일 수 있다', () => {
+  // 동명이 있을 수 있으므로 이름을 키로 쓰면 안 된다
+  assert.equal(byName('보리').id, 'bori');
+  assert.equal(new Set(views.map((v) => v.id)).size, views.length);
+});

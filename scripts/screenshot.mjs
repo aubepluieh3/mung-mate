@@ -17,9 +17,16 @@ page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(url, { waitUntil: 'networkidle' });
 await page.waitForSelector('h1', { timeout: 10000 });
 
-const clickTarget = process.argv[4];
-if (clickTarget) {
-  await page.locator(clickTarget).first().click();
+// 4번째 인자부터는 순서대로 클릭할 셀렉터.
+// --reload 를 끼우면 그 지점에서 새로고침한다 — 저장이 실제로 남는지 확인할 때 쓴다.
+for (const step of process.argv.slice(4)) {
+  if (step === '--reload') {
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForSelector('h1');
+    continue;
+  }
+  await page.locator(step).first().click();
+  await page.waitForTimeout(150);
 }
 
 const result = {

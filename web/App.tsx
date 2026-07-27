@@ -1,21 +1,29 @@
 import { useMemo, useState } from 'react';
 import { findMatches, type MatchGroup } from '../src/match.ts';
 import { toView, GROUP_HEADING, firstMeetingNotice, type MatchView } from '../src/present.ts';
-import { allDogs, districts } from '../sample/neighborhood.ts';
-
-const years = (months: number) => Math.floor(months / 12);
+import { me, neighborhood, districts } from '../sample/neighborhood.ts';
+import type { Dog } from '../src/dog.ts';
+import { ProfileForm } from './ProfileForm.tsx';
+import { loadMyDog, saveMyDog, loadRequests, saveRequests } from './storage.ts';
 
 /** 이 단계는 목록에서 한 줄로 접는다. 안 만날 상대에게 카드 한 장을 주면 목록이 안 읽힌다. */
 const isCompact = (view: MatchView) => view.tier === 'low';
 
-function RequestPanel({ view, onClose }: { view: MatchView; onClose: () => void }) {
+type CardProps = {
+  view: MatchView;
+  group: MatchGroup;
+  requested: boolean;
+  onRequest: (id: string) => void;
+};
+
+function RequestPanel({ view, onSend, onClose }: { view: MatchView; onSend: () => void; onClose: () => void }) {
   return (
     <div className="request">
       {/* 안내 문장이 실제로 읽히는 시점은 만나기로 결정하는 순간이다.
           카드마다 반복해서 붙이면 아무도 읽지 않는다. */}
       <p className="request-guide">{view.guidance}</p>
       <div className="request-actions">
-        <button type="button" className="primary">
+        <button type="button" className="primary" onClick={onSend}>
           {view.name}에게 요청 보내기
         </button>
         <button type="button" className="ghost" onClick={onClose}>
@@ -26,8 +34,8 @@ function RequestPanel({ view, onClose }: { view: MatchView; onClose: () => void 
   );
 }
 
-function DogCard({ view, group }: { view: MatchView; group: MatchGroup }) {
-  const [requesting, setRequesting] = useState(false);
+function DogCard({ view, group, requested, onRequest }: CardProps) {
+  const [opening, setOpening] = useState(false);
   // 만날 수 없는 상대는 톤을 낮춘다. 못 만나는 상대를 강조하면 목록이 거짓말을 한다.
   const cls = `card ${view.tier}${group === 'far' ? ' muted' : ''}`;
 
@@ -75,10 +83,19 @@ function DogCard({ view, group }: { view: MatchView; group: MatchGroup }) {
 
       {/* 차단된 조합에는 버튼을 두지 않는다. 누를 수 없는 버튼은 자리만 차지한다. */}
       {view.requestable &&
-        (requesting ? (
-          <RequestPanel view={view} onClose={() => setRequesting(false)} />
+        (requested ? (
+          <p className="requested">산책 요청을 보냈어요 · 답을 기다리는 중</p>
+        ) : opening ? (
+          <RequestPanel
+            view={view}
+            onSend={() => {
+              onRequest(view.id);
+              setOpening(false);
+            }}
+            onClose={() => setOpening(false)}
+          />
         ) : (
-          <button type="button" className="primary" onClick={() => setRequesting(true)}>
+          <button type="button" className="primary" onClick={() => setOpening(true)}>
             산책 요청 보내기
           </button>
         ))}
@@ -88,13 +105,24 @@ function DogCard({ view, group }: { view: MatchView; group: MatchGroup }) {
   );
 }
 
+const profileSummary = (dog: Dog) =>
+  [
+    dog.district,
+    dog.walkTimes?.length ? `${dog.walkTimes.join(', ')} 산책` : '산책 시간대 미기재',
+    dog.temperaments.join(' · ') || '성향 미기재',
+    dog.sensitiveToDogs ? '낯선 개에게 예민해요' : null,
+    dog.inHeat ? '발정 중' : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
 export function App() {
-  const dogs = useMemo(() => allDogs(), []);
-  const [viewerId, setViewerId] = useState(dogs[0].id);
-  const viewer = dogs.find((d) => d.id === viewerId)!;
+  const [myDog, setMyDog] = useState<Dog>(() => loadMyDog(me));
+  const [editing, setEditing] = useState(false);
+  const [requested, setRequested] = useState<string[]>(() => loadRequests());
 
   const groups = useMemo(() => {
-    const found = findMatches(viewer, dogs, { districts });
+    const found = findMatches(myDog, neighborhood, { districts });
     const order: MatchGroup[] = ['reachable', 'far', 'blocked'];
     return order
       .map((group) => ({
@@ -102,32 +130,50 @@ export function App() {
         items: found.filter((m) => m.group === group).map(toView),
       }))
       .filter((g) => g.items.length > 0);
-  }, [viewer, dogs]);
+  }, [myDog]);
+
+  const save = (dog: Dog) => {
+    setMyDog(dog);
+    saveMyDog(dog);
+    setEditing(false);
+  };
+
+  const request = (id: string) => {
+    const next = [...new Set([...requested, id])];
+    setRequested(next);
+    saveRequests(next);
+  };
+
+  if (editing) {
+    return (
+      <main>
+        <h1>멍메이트</h1>
+        <ProfileForm
+          dog={myDog}
+          districts={Object.keys(districts)}
+          onSave={save}
+          onCancel={() => setEditing(false)}
+        />
+      </main>
+    );
+  }
 
   return (
     <main>
       <header>
         <h1>멍메이트</h1>
-        <label>
-          내 강아지
-          <select value={viewerId} onChange={(e) => setViewerId(e.target.value)}>
-            {dogs.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name} · {d.breed} {d.weightKg}kg · {years(d.ageMonths)}살
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="my-tags">
-          {[
-            viewer.district,
-            viewer.walkTimes?.length ? `${viewer.walkTimes.join(', ')} 산책` : null,
-            viewer.temperaments.join(' · ') || '성향 미기재',
-            viewer.sensitiveToDogs ? '낯선 개에게 예민해요' : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
+        <div className="my-dog">
+          <div>
+            <strong>{myDog.name}</strong>
+            <span className="subtitle">
+              {myDog.breed} · {myDog.weightKg}kg · {Math.floor(myDog.ageMonths / 12)}살
+            </span>
+            <p className="my-tags">{profileSummary(myDog)}</p>
+          </div>
+          <button type="button" className="ghost" onClick={() => setEditing(true)}>
+            수정
+          </button>
+        </div>
       </header>
 
       <p className="notice">{firstMeetingNotice}</p>
@@ -141,7 +187,13 @@ export function App() {
             </summary>
             <ul className="cards">
               {items.map((view) => (
-                <DogCard key={view.name} view={view} group={group} />
+                <DogCard
+                  key={view.id}
+                  view={view}
+                  group={group}
+                  requested={requested.includes(view.id)}
+                  onRequest={request}
+                />
               ))}
             </ul>
           </details>
@@ -152,7 +204,13 @@ export function App() {
             </h2>
             <ul className="cards">
               {items.map((view) => (
-                <DogCard key={view.name} view={view} group={group} />
+                <DogCard
+                  key={view.id}
+                  view={view}
+                  group={group}
+                  requested={requested.includes(view.id)}
+                  onRequest={request}
+                />
               ))}
             </ul>
           </section>
