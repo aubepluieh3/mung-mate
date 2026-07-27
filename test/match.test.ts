@@ -1,121 +1,172 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { findMatches } from '../src/match.ts';
-import { me, neighborhood, districts } from '../sample/neighborhood.ts';
-import type { Dog } from '../src/dog.ts';
+import { emptyMessage, findMatches, type Verdict } from '../src/match.ts';
+import { formatAge, type Dog } from '../src/dog.ts';
 
-const NOW = new Date('2026-07-27T00:00:00Z');
-const OPTS = { now: NOW, districts };
-const matches = findMatches(me, neighborhood, OPTS);
-const byName = (name: string) => matches.find((m) => m.dog.name === name)!;
-const rankOf = (name: string) => matches.findIndex((m) => m.dog.name === name);
-
-test('자기 자신은 후보에 들어가지 않는다', () => {
-  const withSelf = findMatches(me, [...neighborhood, me], OPTS);
-  assert.equal(withSelf.filter((m) => m.dog.id === me.id).length, 0);
+const dog = (over: Partial<Dog> = {}): Dog => ({
+  id: 'd',
+  name: '멍이',
+  breed: '믹스',
+  ageMonths: 36,
+  weightKg: 12,
+  sex: 'male',
+  neutered: true,
+  district: '성산동',
+  walkTimes: ['저녁'],
+  ...over,
 });
 
-test('차단된 상대도 목록에서 사라지지 않는다 — 맨 아래로 내려가고 요청만 잠긴다', () => {
-  const blocked = matches.filter((m) => m.group === 'blocked');
-  assert.ok(blocked.length > 0);
-  assert.ok(blocked.every((m) => !m.requestable));
-  assert.ok(blocked.every((m) => m.gate.findings.length > 0)); // 이유는 반드시 보여준다
+/** 우리 개와 상대 하나를 견주어 판정만 꺼낸다. */
+const judge = (me: Dog, other: Dog) => findMatches(me, [{ ...other, id: 'other' }])[0];
+const verdict = (me: Dog, other: Dog): Verdict => judge(me, other).verdict;
 
-  const lastGroups = matches.slice(-blocked.length).map((m) => m.group);
-  assert.deepEqual(new Set(lastGroups), new Set(['blocked']));
+test('조건이 비슷하면 만나도 좋다', () => {
+  const m = judge(dog(), dog({ weightKg: 14 }));
+  assert.equal(m.verdict, 'ok');
+  assert.deepEqual(m.reasons, []);
+  assert.equal(m.reachable, true);
 });
 
-test('차단된 상대에게는 점수를 보여주지 않는다', () => {
-  for (const m of matches.filter((x) => x.group === 'blocked')) {
-    assert.equal(m.score, null);
-    assert.deepEqual(m.pairs, []);
-    assert.deepEqual(m.factors, []);
-  }
+test('접종 전 강아지는 차단한다', () => {
+  const m = judge(dog(), dog({ name: '아기', ageMonths: 3, weightKg: 11 }));
+  assert.equal(m.verdict, 'blocked');
+  assert.match(m.reasons[0], /예방접종/);
 });
 
-test('차단이면 차단 사유만 남기고 부가 경고는 감춘다', () => {
-  const saessak = byName('새싹'); // 접종 미완료(차단) + 체급 2배(경고)
-  assert.equal(saessak.group, 'blocked');
-  assert.ok(saessak.gate.findings.every((f) => f.level === 'block'));
-  assert.ok(saessak.gate.findings.some((f) => f.code === 'VACCINATION_INCOMPLETE'));
+test('체급은 절대 차이가 아니라 비율로 본다', () => {
+  // 3kg 대 10kg(7kg 차이)이 30kg 대 40kg(10kg 차이)보다 위험하다
+  assert.equal(verdict(dog({ weightKg: 3 }), dog({ weightKg: 10 })), 'blocked');
+  assert.equal(verdict(dog({ weightKg: 30 }), dog({ weightKg: 40 })), 'ok');
 });
 
-test('경고가 붙은 상대는 목록에서 빠지지 않고 요청도 가능하다', () => {
-  const byeol = byName('별이');
-  assert.equal(byeol.group, 'reachable');
-  assert.equal(byeol.gate.level, 'caution');
-  assert.ok(byeol.requestable);
+test('체급 2배는 경고, 3배는 차단', () => {
+  assert.equal(verdict(dog({ weightKg: 12 }), dog({ weightKg: 25 })), 'caution');
+  assert.equal(verdict(dog({ weightKg: 12 }), dog({ weightKg: 36 })), 'blocked');
 });
 
-test('만날 수 있는지가 궁합보다 먼저다', () => {
-  // 뭉치(연남동·밤)는 궁합이 좋지만 토리(성산동·저녁,밤)와 시간대만 겹치고 동은 인접
-  // 할부지(합정동·아침)는 동도 멀고 시간대도 안 겹친다
-  const grandpa = byName('할부지');
-  assert.equal(grandpa.group, 'far');
-  assert.ok(grandpa.score! > 0);
-
-  // 점수가 더 낮아도 만날 수 있는 상대가 위로 온다
-  const kkami = byName('까미'); // 성산동·밤 → 겹침
-  assert.equal(kkami.group, 'reachable');
-  assert.ok(kkami.score! < grandpa.score!);
-  assert.ok(rankOf('까미') < rankOf('할부지'));
-});
-
-test('경고 여부가 아니라 점수로 순위를 매긴다', () => {
-  // 이전 설계는 레벨을 1순위로 정렬해서 55점 ok 가 70점 caution 보다 위에 있었다
-  const caution = byName('별이'); // 주의, 31점
-  const ok = byName('방울'); // 통과, 8점
-  assert.ok(caution.score! > ok.score!);
-  assert.ok(rankOf('별이') < rankOf('방울'));
-});
-
-test('겁많은 소형견에게는 만날 수 있는 겁많은 소형견이 1순위로 온다', () => {
-  assert.equal(matches[0].dog.name, '보리');
-  assert.equal(matches[0].group, 'reachable');
-  assert.equal(matches[0].score, 90);
-});
-
-test('태그 없는 프로필은 점수 경쟁에서 빠져 그룹 안에서 아래로 간다', () => {
-  const kong = byName('콩이'); // 성산동 · 저녁 → 만날 수는 있다
-  assert.equal(kong.group, 'reachable');
-  assert.equal(kong.score, null);
-  assert.ok(kong.requestable); // 위험한 게 아니라 정보가 없을 뿐이다
-
-  // 같은 그룹에서 점수가 있는 상대들보다 아래
-  const scoredInGroup = matches.filter((m) => m.group === 'reachable' && m.score !== null);
-  assert.ok(scoredInGroup.every((m) => rankOf(m.dog.name) < rankOf('콩이')));
-});
-
-test('만날 수 있으면 성향 미기재라도 먼 동네보다 위로 온다', () => {
-  // 성향 미기재를 별도 그룹으로 빼면 이 순서가 뒤집힌다
-  assert.ok(rankOf('콩이') < rankOf('할부지'));
-});
-
-test('그룹 순서는 만날 수 있음 → 못 만남 → 차단', () => {
-  const order = matches.map((m) => m.group);
-  const rank = { reachable: 0, far: 1, blocked: 2 };
-  for (let i = 1; i < order.length; i++) {
-    assert.ok(rank[order[i - 1]] <= rank[order[i]], `${order[i - 1]} 뒤에 ${order[i]}`);
-  }
-});
-
-test('오래 방치된 프로필은 순위가 중립 쪽으로 밀린다', () => {
-  const mungchi = byName('뭉치'); // 겁많음 + 예민해요, 2년 전 프로필
-  const bori = byName('보리'); // 겁많음, 최근 프로필
-  assert.equal(mungchi.tagTrust, 0.5);
-  assert.ok(mungchi.score! < bori.score!);
-});
-
-test('후보가 늘어도 정렬은 안정적이다 (동점은 이름순)', () => {
-  const twin = (id: string, name: string): Dog => ({
-    ...me,
-    id,
-    name,
-    temperaments: ['겁많음'],
-  });
-  const result = findMatches(me, [twin('t2', '하늘'), twin('t1', '가을')], OPTS);
-  assert.deepEqual(
-    result.map((m) => m.dog.name),
-    ['가을', '하늘'],
+test('중성화하지 않은 암수는 차단한다', () => {
+  // 발정기가 겹치는 시점을 알 수 없고, 원치 않는 임신은 되돌릴 수 없다
+  const m = judge(
+    dog({ name: '나비', sex: 'female', neutered: false }),
+    dog({ name: '초코', sex: 'male', neutered: false, weightKg: 13 }),
   );
+  assert.equal(m.verdict, 'blocked');
+  assert.match(m.reasons[0], /원치 않는 임신/);
+});
+
+test('한쪽이라도 중성화했으면 차단하지 않는다', () => {
+  const me = dog({ sex: 'female', neutered: false });
+  assert.equal(verdict(me, dog({ sex: 'male', neutered: true, weightKg: 13 })), 'ok');
+});
+
+test('미중성화 성견 수컷끼리는 경고', () => {
+  const m = judge(dog({ neutered: false }), dog({ neutered: false, weightKg: 13 }));
+  assert.equal(m.verdict, 'caution');
+  assert.match(m.reasons[0], /기싸움/);
+});
+
+test('노견 × 퍼피는 경고', () => {
+  const m = judge(
+    dog({ name: '할부지', ageMonths: 144 }),
+    dog({ name: '새싹', ageMonths: 8, weightKg: 11 }),
+  );
+  assert.equal(m.verdict, 'caution');
+  assert.match(m.reasons[0], /노견/);
+});
+
+test('차단이면 차단 사유만 남긴다 — 부가 경고에 묻히면 안 된다', () => {
+  // 접종 미완료(차단) + 체급 2.75배(경고)가 같이 걸리는 조합
+  const m = judge(dog({ weightKg: 11 }), dog({ name: '새싹', ageMonths: 3, weightKg: 4 }));
+  assert.equal(m.verdict, 'blocked');
+  assert.equal(m.reasons.length, 1);
+  assert.match(m.reasons[0], /예방접종/);
+});
+
+test('경고는 여러 개면 모두 보여준다', () => {
+  const m = judge(
+    dog({ name: '할부지', ageMonths: 144, weightKg: 11 }),
+    dog({ name: '새싹', ageMonths: 10, weightKg: 25 }),
+  );
+  assert.equal(m.verdict, 'caution');
+  assert.equal(m.reasons.length, 2);
+});
+
+test('판정은 순서를 바꿔도 같다', () => {
+  const pairs: [Dog, Dog][] = [
+    [dog({ weightKg: 3 }), dog({ weightKg: 30 })],
+    [dog({ ageMonths: 2 }), dog({ ageMonths: 60 })],
+    [dog({ sex: 'female', neutered: false }), dog({ neutered: false })],
+    [dog({ ageMonths: 130 }), dog({ ageMonths: 6, weightKg: 11 })],
+  ];
+  for (const [a, b] of pairs) {
+    assert.equal(judge(a, b).verdict, judge(b, a).verdict);
+  }
+});
+
+test('같은 동에 시간대가 겹쳐야 만날 수 있다', () => {
+  const me = dog({ district: '성산동', walkTimes: ['저녁', '밤'] });
+
+  assert.equal(judge(me, dog({ district: '성산동', walkTimes: ['저녁'] })).reachable, true);
+  assert.equal(judge(me, dog({ district: '망원동', walkTimes: ['저녁'] })).reachable, false);
+  assert.equal(judge(me, dog({ district: '성산동', walkTimes: ['아침'] })).reachable, false);
+  assert.equal(judge(me, dog({ district: '성산동', walkTimes: [] })).reachable, false);
+  assert.equal(judge(me, dog({ district: undefined })).reachable, false);
+});
+
+test('못 만나는 이유가 거리인지 시간대인지 구분해서 말한다', () => {
+  const me = dog({ district: '성산동', walkTimes: ['저녁'] });
+  assert.match(judge(me, dog({ district: '망원동' })).when, /망원동에 살아요/);
+  assert.match(judge(me, dog({ walkTimes: ['아침'] })).when, /시간대가 겹치지 않아요/);
+  assert.match(judge(me, dog({ walkTimes: [] })).when, /시간대를 아직 안 적었어요/);
+  assert.match(judge(me, dog({ walkTimes: ['저녁'] })).when, /저녁에 함께 걸어요/);
+});
+
+test('차단은 만날 수 있든 없든 맨 아래로 내린다', () => {
+  // 같은 동이라고 차단을 위로 올리면 절대 만나면 안 되는 상대가 목록 앞에 온다
+  const me = dog({ name: '토리', weightKg: 8, district: '성산동', walkTimes: ['저녁'] });
+  const list = findMatches(me, [
+    dog({ id: 'big', name: '큰개', weightKg: 30 }), // 같은 동·시간 겹침이지만 차단
+    dog({ id: 'far', name: '먼개', weightKg: 9, district: '망원동' }), // 못 만나지만 조합은 괜찮다
+    dog({ id: 'good', name: '맞는개', weightKg: 9 }), // 만날 수 있음
+  ]);
+  assert.deepEqual(
+    list.map((m) => m.dog.name),
+    ['맞는개', '먼개', '큰개'],
+  );
+});
+
+test('만날 수 있는 상대를 못 만나는 상대보다 위에 둔다', () => {
+  const me = dog({ name: '토리', weightKg: 8, district: '성산동', walkTimes: ['저녁'] });
+  const list = findMatches(me, [
+    dog({ id: 'far', name: '먼개', weightKg: 9, district: '망원동' }),
+    dog({ id: 'near', name: '가까운개', weightKg: 15 }), // 체급 경고가 있어도 만날 수 있다
+  ]);
+  assert.deepEqual(
+    list.map((m) => m.dog.name),
+    ['가까운개', '먼개'],
+  );
+});
+
+test('자기 자신은 목록에 없다', () => {
+  const me = dog({ id: 'me' });
+  assert.equal(findMatches(me, [me, dog({ id: 'x', weightKg: 13 })]).length, 1);
+});
+
+test('만날 친구가 없으면 왜 없는지 알려준다', () => {
+  const base = dog({ id: 'me', name: '토리' });
+  assert.match(emptyMessage({ ...base, district: undefined }, []), /동네를 고르면/);
+  assert.match(emptyMessage({ ...base, walkTimes: [] }, []), /시간대를 고르면/);
+  assert.match(emptyMessage({ ...base, ageMonths: 3 }, []), /예방접종/);
+
+  const blocked = findMatches(base, [dog({ id: 'b', weightKg: 40 })]);
+  assert.match(emptyMessage(base, blocked), /권할 친구가 없어요/);
+  assert.match(emptyMessage(base, []), /성산동에 같은 시간대/);
+});
+
+test('나이는 견주가 말하는 방식으로 적는다', () => {
+  // 살로만 쓰면 6개월 강아지가 "0살"이 된다. 퍼피는 개월이 판정을 가르는 값이다
+  assert.equal(formatAge(3), '3개월');
+  assert.equal(formatAge(12), '1살');
+  assert.equal(formatAge(18), '1살 6개월');
+  assert.equal(formatAge(30), '2살');
 });

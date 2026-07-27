@@ -8,8 +8,6 @@ const hasFinalConsonant = (word: string): boolean => {
   return (code - 0xac00) % 28 !== 0;
 };
 
-/** 이 / 가 */
-export const subj = (name: string) => `${name}${hasFinalConsonant(name) ? '이' : '가'}`;
 /** 은 / 는 */
 export const topic = (name: string) => `${name}${hasFinalConsonant(name) ? '은' : '는'}`;
 /** 을 / 를 */

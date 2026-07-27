@@ -8,8 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "node --experimental-strip-types --test test/*.test.ts",
-    "typecheck": "tsc --noEmit",
-    "server": "node --experimental-strip-types --experimental-sqlite server/index.ts"
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

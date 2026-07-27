@@ -4,9 +4,8 @@
   --line: #e6e1da;
   --text: #2c2723;
   --muted: #7d746a;
-  --good: #2f7a4f;
-  --fine: #4a6f8a;
-  --careful: #a8712a;
+  --ok: #2f7a4f;
+  --caution: #a8712a;
   --blocked: #99908a;
   font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
 }
@@ -23,82 +22,57 @@ body {
 }
 
 main {
-  max-width: 640px;
+  max-width: 560px;
   margin: 0 auto;
   padding: 24px 16px 64px;
 }
 
 h1 {
-  font-size: 24px;
+  font-size: 22px;
   margin: 0 0 16px;
 }
 
-.my-dog {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 16px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
 }
 
-.my-dog strong {
-  font-size: 17px;
-  margin-right: 8px;
-}
-
-.my-dog .ghost {
-  margin-top: 0;
-  flex-shrink: 0;
-  padding: 8px 14px;
-}
-
-.my-tags {
-  margin: 6px 0 0;
+.sub,
+.hint {
   font-size: 13px;
   color: var(--muted);
 }
 
 /* --- 프로필 폼 --- */
 
-.profile-form {
+.form,
+.me {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
 }
 
-.profile-form h2 {
-  margin: 0 0 16px;
-  font-size: 16px;
+.me {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.profile-form label:not(.inline) {
+.me p {
+  margin: 4px 0 0;
+}
+
+.form label:not(.inline) {
   display: block;
   margin-bottom: 12px;
   font-size: 13px;
   color: var(--muted);
 }
 
-.profile-form .row {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-/* 좁은 폭에서는 한 줄에 못 넣는다. 150px 아래로 눌리면 줄을 바꿔서 숫자가 잘리지 않게 한다.
-   min-width: 0 이 없으면 flex 아이템이 줄지 않아 화면을 넘긴다. */
-.profile-form .row > label {
-  flex: 1 1 150px;
-  min-width: 0;
-}
-
-.profile-form input[type='text'],
-.profile-form input:not([type]),
-.profile-form input[type='number'],
-.profile-form select {
+.form input:not([type='radio']):not([type='checkbox']),
+.form select {
   display: block;
   width: 100%;
   margin-top: 4px;
@@ -111,34 +85,43 @@ h1 {
   color: inherit;
 }
 
-.age {
+/* 좁은 폭에서는 줄을 바꿔서 숫자가 잘리지 않게 한다.
+   min-width: 0 이 없으면 flex 아이템이 줄지 않아 화면을 넘긴다. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.row > label {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.units {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-top: 4px;
+  font-size: 14px;
+  color: var(--text);
+  white-space: nowrap;
 }
 
-.age input {
+.units input {
   flex: 1;
-  min-width: 44px; /* 숫자 두 자리는 보여야 한다 */
-  width: auto !important;
+  min-width: 44px;
   margin-top: 0 !important;
 }
 
-.age span {
-  font-size: 14px;
-  color: var(--text);
-  white-space: nowrap; /* 좁은 폭에서 "개월"이 두 줄로 깨지지 않게 */
-}
-
-.profile-form fieldset {
+fieldset {
   margin: 0 0 12px;
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
-.profile-form legend {
+legend {
   font-size: 13px;
   color: var(--muted);
   padding: 0 4px;
@@ -150,28 +133,41 @@ label.inline {
   gap: 5px;
   margin: 4px 14px 4px 0;
   font-size: 14px;
-  color: var(--text);
 }
 
-label.inline input {
-  width: auto;
-  margin: 0;
+.actions {
+  display: flex;
+  gap: 8px;
 }
 
-.highlight-field {
-  display: flex !important;
-  padding: 10px 12px;
-  margin-bottom: 12px;
+button {
+  padding: 11px 16px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 500;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button.primary {
+  flex: 1;
+  color: #fff;
+  font-weight: 600;
+  background: var(--text);
+  border-color: var(--text);
+}
+
+.notice {
+  margin: 16px 0;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #6b5a35;
   background: #fff8e8;
   border: 1px solid #f0e0bc;
   border-radius: 8px;
-  flex-wrap: wrap;
-}
-
-.hint {
-  font-size: 12px;
-  color: var(--muted);
-  font-weight: 400;
 }
 
 .error {
@@ -184,351 +180,90 @@ label.inline input {
   border-radius: 8px;
 }
 
-.requested {
-  margin: 12px 0 0;
-  padding: 11px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--good);
-  background: #eef6f1;
-  border: 1px solid #cfe4d8;
-  border-radius: 8px;
-}
-
-/* 보냈지만 지금은 권하지 않는 조합이 된 요청 */
-.requested.stale {
-  color: var(--careful);
-  background: #fdf6ec;
-  border-color: #eedcc0;
-  font-weight: 500;
-  text-align: left;
-  line-height: 1.5;
-}
-
-.form-intro {
-  margin: -8px 0 16px;
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.5;
-}
-
 .empty {
-  margin: 20px 0 8px;
+  margin-bottom: 16px;
   padding: 18px 16px;
+  text-align: center;
   background: var(--card);
   border: 1px dashed var(--line);
   border-radius: 10px;
-  text-align: center;
 }
 
 .empty p {
   margin: 0 0 12px;
   font-size: 14px;
-  color: var(--text);
-  line-height: 1.6;
 }
 
-.empty .ghost {
-  margin: 0;
-}
-
-.notice {
-  margin: 20px 0 8px;
-  padding: 12px 14px;
-  font-size: 13px;
-  background: #fff8e8;
-  border: 1px solid #f0e0bc;
-  border-radius: 8px;
-  color: #6b5a35;
-}
-
-h2 {
-  font-size: 15px;
-  margin: 32px 0 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.count {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--muted);
-}
+/* --- 판정 카드 --- */
 
 .cards {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .card {
+  padding: 14px 16px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--fine);
+  border-left: 4px solid var(--ok);
   border-radius: 10px;
-  padding: 14px 16px;
 }
 
-.card.good {
-  border-left-color: var(--good);
+.card.caution {
+  border-left-color: var(--caution);
 }
-.card.fine {
-  border-left-color: var(--fine);
-}
-.card.careful {
-  border-left-color: var(--careful);
-}
-.card.low,
-.card.unknown,
-.card.blocked {
+
+/* 못 만나는 상대와 차단은 눈에 덜 띄게 둔다. 강조하면 목록이 거짓말을 한다. */
+.card.blocked,
+.card.far {
   border-left-color: var(--blocked);
   background: #f7f5f2;
 }
 
-/* 만날 수 없는 상대. 지우지는 않지만 눈에 덜 띄게 둔다. */
-.card.muted {
-  border-left-color: var(--blocked);
-  background: #f7f5f2;
-}
-
-.card.muted .verdict {
-  color: var(--muted);
-}
-
-.card.muted .primary {
-  background: #8f867e;
-}
-
-.card.compact {
-  padding: 10px 14px;
-}
-
-.card.compact .card-head {
-  gap: 6px;
-}
-
-.verdict-inline {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--blocked);
-  white-space: nowrap;
-}
-
-.card.compact summary,
-.blocked-section summary {
-  cursor: pointer;
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.card.compact summary {
-  margin-top: 4px;
-}
-
-.watch-out {
-  margin: 6px 0 0;
-  font-size: 13px;
-  color: #6b625a;
-}
-
-.blocked-section {
-  margin-top: 32px;
-  padding: 12px 14px;
-  background: #f4f2ef;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-
-.blocked-section summary {
-  font-size: 14px;
-  color: var(--text);
-}
-
-.blocked-section .cards {
-  margin-top: 12px;
-}
-
-.alternative {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.request {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px dashed var(--line);
-}
-
-.request-guide {
-  margin: 0 0 10px;
-  font-size: 13px;
-  color: #6b5a35;
-  background: #fff8e8;
-  border: 1px solid #f0e0bc;
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-
-.request-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.request-actions .primary {
-  flex: 1;
-}
-
-.ghost {
-  width: auto;
-  padding: 11px 16px;
-  color: var(--muted);
-  background: transparent;
-  border: 1px solid var(--line);
-}
-
-.card-head {
+.head {
   display: flex;
   align-items: baseline;
   gap: 8px;
   flex-wrap: wrap;
 }
 
-.name {
+.head strong {
   font-size: 17px;
 }
 
-.subtitle {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-.reach {
+.when {
   margin: 6px 0 0;
   font-size: 13px;
   color: #4a6f8a;
   font-weight: 500;
 }
 
-.card.muted .reach,
-.card.low .reach,
-.card.unknown .reach,
-.card.blocked .reach {
+.card.blocked .when,
+.card.far .when {
   color: var(--muted);
   font-weight: 400;
 }
 
-.card.compact .reach {
-  margin: 2px 0 0;
-  font-size: 12px;
-}
-
 .verdict {
-  margin: 6px 0 0;
+  margin: 4px 0 0;
   font-size: 14px;
   font-weight: 600;
+  color: var(--ok);
 }
 
-.card.good .verdict {
-  color: var(--good);
+.card.caution .verdict {
+  color: var(--caution);
 }
-.card.fine .verdict {
-  color: var(--fine);
-}
-.card.careful .verdict {
-  color: var(--careful);
-}
-.card.low .verdict,
-.card.unknown .verdict,
+
 .card.blocked .verdict {
   color: var(--blocked);
 }
 
-.highlight {
-  margin: 8px 0 0;
-  font-size: 14px;
-}
-
-.watch-outs {
-  margin: 8px 0 0;
-  padding-left: 18px;
+.reason {
+  margin: 6px 0 0;
   font-size: 13px;
   color: #6b625a;
-}
-
-button {
-  margin-top: 12px;
-  width: 100%;
-  padding: 11px;
-  font-size: 14px;
-  font-family: inherit;
-  font-weight: 600;
-  color: #fff;
-  background: var(--text);
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-button:disabled {
-  background: #ddd7d0;
-  color: #8b827a;
-  cursor: not-allowed;
-}
-
-/* --- 탭 --- */
-
-.tabs {
-  display: flex;
-  gap: 6px;
-  margin-top: 20px;
-  border-bottom: 1px solid var(--line);
-}
-
-.tabs button {
-  width: auto;
-  margin: 0;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--muted);
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-}
-
-.tabs button.on {
-  color: var(--text);
-  font-weight: 700;
-  border-bottom-color: var(--text);
-}
-
-.trail-tags {
-  margin: 8px 0 0;
-  font-size: 12px;
-  color: var(--fine);
-  line-height: 1.7;
-}
-
-.area-notice {
-  display: block;
-  margin: -6px 0 14px;
-  line-height: 1.6;
-}
-
-.map-link {
-  display: inline-block;
-  margin-top: 10px;
-  padding: 8px 14px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  background: #fee500;
-  border-radius: 8px;
-  text-decoration: none;
 }

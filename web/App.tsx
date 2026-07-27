@@ -1,284 +1,272 @@
-import { useEffect, useState } from 'react';
-import type { MatchGroup } from '../src/match.ts';
-import type { MatchView } from '../src/present.ts';
-import { formatAge, type Dog } from '../src/dog.ts';
-import { ProfileForm } from './ProfileForm.tsx';
-import { Walks } from './Walks.tsx';
-import { Trails } from './Trails.tsx';
-import { blankDog, clearDogId, loadDogId, saveDogId } from './storage.ts';
+import { useMemo, useState } from 'react';
+import { WALK_TIMES, type Dog, type WalkTime } from '../src/dog.ts';
 import {
-  fetchDistricts,
-  fetchScreen,
-  saveDog,
-  sendRequest,
-  type AreaInfo,
-  type Screen,
-} from './api.ts';
+  describe,
+  emptyMessage,
+  findMatches,
+  FIRST_MEETING_NOTICE,
+  VERDICT_LABEL,
+  type Match,
+} from '../src/match.ts';
+import { DISTRICTS, neighborhood } from '../sample/neighborhood.ts';
+import { blankDog, load, save } from './storage.ts';
 
-/** 이 단계는 목록에서 한 줄로 접는다. 안 만날 상대에게 카드 한 장을 주면 목록이 안 읽힌다. */
-const isCompact = (view: MatchView) => view.tier === 'low';
+/** 우리 개를 등록하고, 동네에서 만나도 되는 친구를 확인한다. 이 앱은 그것만 한다. */
 
-type CardProps = {
-  view: MatchView;
-  group: MatchGroup;
-  notice: string;
-  onRequest: (id: string) => void;
-};
+function ProfileForm({
+  dog,
+  onSave,
+  onCancel,
+}: {
+  dog: Dog;
+  onSave: (dog: Dog) => void;
+  /** 처음 등록하는 중이면 없다 — 취소할 이전 프로필이 없다. */
+  onCancel?: () => void;
+}) {
+  const isNew = !onCancel;
+  const [draft, setDraft] = useState(dog);
+  const [years, setYears] = useState(Math.floor(dog.ageMonths / 12));
+  const [months, setMonths] = useState(dog.ageMonths % 12);
+  // 성별은 중성화 관련 룰에 직결된다. 기본값을 넣어두면 안 바꾸고 지나쳐 판정이 틀린다
+  const [sexPicked, setSexPicked] = useState(!isNew);
+  const [error, setError] = useState('');
 
-function DogCard({ view, group, notice, onRequest }: CardProps) {
-  const [opening, setOpening] = useState(false);
-  // 만날 수 없는 상대는 톤을 낮춘다. 못 만나는 상대를 강조하면 목록이 거짓말을 한다.
-  const cls = `card ${view.tier}${group === 'far' ? ' muted' : ''}`;
+  const patch = (over: Partial<Dog>) => setDraft((d) => ({ ...d, ...over }));
 
-  if (isCompact(view)) {
-    return (
-      <li className={`${cls} compact`}>
-        <div className="card-head">
-          <strong className="name">{view.name}</strong>
-          <span className="subtitle">{view.subtitle}</span>
-          <span className="verdict-inline">{view.verdict}</span>
-        </div>
-        <p className="reach">{view.reach}</p>
-        <details>
-          <summary>왜 그런지 보기</summary>
-          {view.watchOuts.map((w) => (
-            <p key={w} className="watch-out">
-              {w}
-            </p>
-          ))}
-        </details>
-      </li>
-    );
-  }
+  const toggleTime = (t: WalkTime) => {
+    const now = draft.walkTimes ?? [];
+    patch({ walkTimes: now.includes(t) ? now.filter((x) => x !== t) : [...now, t] });
+  };
+
+  const submit = () => {
+    if (!draft.name.trim()) return setError('이름을 적어주세요.');
+    if (!(draft.weightKg > 0)) return setError('몸무게를 적어주세요.');
+    if (!sexPicked) return setError('성별을 골라주세요.');
+    onSave({
+      ...draft,
+      name: draft.name.trim(),
+      breed: draft.breed.trim() || '믹스',
+      ageMonths: years * 12 + months,
+    });
+  };
 
   return (
-    <li className={cls}>
-      <div className="card-head">
-        <strong className="name">{view.name}</strong>
-        <span className="subtitle">{view.subtitle}</span>
+    <div className="form">
+      <h2>{isNew ? '우리 강아지를 등록해주세요' : '내 강아지 정보'}</h2>
+      {isNew && <p className="hint">정확한 주소는 받지 않고 동네까지만 씁니다.</p>}
+
+      <label>
+        이름
+        <input value={draft.name} onChange={(e) => patch({ name: e.target.value })} />
+      </label>
+
+      <label>
+        견종
+        <input
+          value={draft.breed}
+          placeholder="믹스"
+          onChange={(e) => patch({ breed: e.target.value })}
+        />
+      </label>
+
+      <div className="row">
+        <label>
+          나이
+          <span className="units">
+            <input
+              type="number"
+              min={0}
+              value={years}
+              onChange={(e) => setYears(Math.max(0, Number(e.target.value)))}
+            />
+            살
+            <input
+              type="number"
+              min={0}
+              max={11}
+              value={months}
+              onChange={(e) => setMonths(Math.min(11, Math.max(0, Number(e.target.value))))}
+            />
+            개월
+          </span>
+        </label>
+        <label>
+          몸무게
+          <span className="units">
+            <input
+              type="number"
+              min={0}
+              step={0.1}
+              value={draft.weightKg}
+              onChange={(e) => patch({ weightKg: Number(e.target.value) })}
+            />
+            kg
+          </span>
+        </label>
       </div>
 
-      {/* 만날 수 있는지가 궁합보다 먼저 읽혀야 한다 */}
-      <p className="reach">{view.reach}</p>
+      <fieldset>
+        <legend>성별</legend>
+        {(['male', 'female'] as const).map((sex) => (
+          <label key={sex} className="inline">
+            <input
+              type="radio"
+              checked={sexPicked && draft.sex === sex}
+              onChange={() => {
+                setSexPicked(true);
+                patch({ sex });
+              }}
+            />
+            {sex === 'male' ? '수컷' : '암컷'}
+          </label>
+        ))}
+        <label className="inline">
+          <input
+            type="checkbox"
+            checked={draft.neutered}
+            onChange={(e) => patch({ neutered: e.target.checked })}
+          />
+          중성화했어요
+        </label>
+      </fieldset>
 
-      <p className="verdict">{view.verdict}</p>
-      {view.highlight && <p className="highlight">{view.highlight}</p>}
-
-      {view.watchOuts.length > 0 && (
-        <ul className="watch-outs">
-          {view.watchOuts.map((w) => (
-            <li key={w}>{w}</li>
-          ))}
-        </ul>
-      )}
-
-      {/* 이미 보낸 요청은 조합이 차단으로 바뀌어도 계속 보여준다.
-          보낸 요청이 화면에서 조용히 사라지면 견주는 보냈는지조차 알 수 없다. */}
-      {view.requested && (
-        <p className={`requested${view.requestable ? '' : ' stale'}`}>
-          {view.requestable
-            ? '산책 요청을 보냈어요 · 답을 기다리는 중'
-            : '산책 요청을 보낸 친구예요. 프로필이 바뀌어 지금은 권하지 않는 조합이 됐어요.'}
+      {sexPicked && !draft.neutered && (
+        <p className="notice">
+          중성화하지 않은 암수는 서로 만나지 않도록 안내하고 있어요. 발정기에는 다른 친구와의 만남을
+          미뤄주세요.
         </p>
       )}
 
-      {/* 차단된 조합에는 버튼을 두지 않는다. 누를 수 없는 버튼은 자리만 차지한다. */}
-      {view.requestable &&
-        !view.requested &&
-        (opening ? (
-          <div className="request">
-            {/* 안내가 실제로 읽히는 시점은 만나기로 결정하는 순간이다.
-                카드마다 반복해서 붙이거나 목록 위에 띄워두면 아무도 읽지 않는다. */}
-            <p className="request-guide">
-              {view.guidance}
-              <br />
-              {notice}
-            </p>
-            <div className="request-actions">
-              <button type="button" className="primary" onClick={() => onRequest(view.id)}>
-                {view.name}에게 요청 보내기
-              </button>
-              <button type="button" className="ghost" onClick={() => setOpening(false)}>
-                취소
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button type="button" className="primary" onClick={() => setOpening(true)}>
-            산책 요청 보내기
-          </button>
-        ))}
+      <label>
+        동네
+        <select
+          value={draft.district ?? ''}
+          onChange={(e) => patch({ district: e.target.value || undefined })}
+        >
+          <option value="">선택해주세요</option>
+          {DISTRICTS.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+      </label>
+      {/* 목록에 자기 동네가 없는 견주가 이유를 모르고 떠나면 안 된다 */}
+      <p className="hint">
+        지금은 서울 마포구 {DISTRICTS.join(' · ')} 에서만 운영해요. 다른 동네는 준비 중입니다.
+      </p>
 
-      {!view.requestable && !view.requested && <p className="alternative">{view.guidance}</p>}
+      <fieldset>
+        <legend>주로 산책하는 시간대</legend>
+        {WALK_TIMES.map((t) => (
+          <label key={t} className="inline">
+            <input
+              type="checkbox"
+              checked={draft.walkTimes?.includes(t) ?? false}
+              onChange={() => toggleTime(t)}
+            />
+            {t}
+          </label>
+        ))}
+      </fieldset>
+
+      {error && <p className="error">{error}</p>}
+
+      <div className="actions">
+        <button type="button" className="primary" onClick={submit}>
+          {isNew ? '등록하고 친구 찾기' : '저장'}
+        </button>
+        {onCancel && (
+          <button type="button" onClick={onCancel}>
+            취소
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MatchCard({ match }: { match: Match }) {
+  const { dog, verdict, reasons, when, reachable } = match;
+  return (
+    <li className={`card ${verdict}${reachable ? '' : ' far'}`}>
+      <div className="head">
+        <strong>{dog.name}</strong>
+        <span className="sub">{describe(dog)}</span>
+      </div>
+      <p className="when">{when}</p>
+      <p className="verdict">{VERDICT_LABEL[verdict]}</p>
+      {/* 차단이든 경고든 이유는 반드시 보여준다 — 모르면 견주는 판단을 신뢰하지 않는다 */}
+      {reasons.map((r) => (
+        <p key={r} className="reason">
+          {r}
+        </p>
+      ))}
     </li>
   );
 }
 
-const profileSummary = (dog: Dog) =>
-  [
-    dog.district,
-    dog.walkTimes?.length ? `${dog.walkTimes.join(', ')} 산책` : '산책 시간대 미기재',
-    dog.temperaments.join(' · ') || '성향 미기재',
-    dog.sensitiveToDogs ? '낯선 개에게 예민해요' : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-
 export function App() {
-  const [screen, setScreen] = useState<Screen | null>(null);
-  const [area, setArea] = useState<AreaInfo>({ districts: [], areaNotice: '' });
+  const [myDog, setMyDog] = useState(load);
   const [editing, setEditing] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [tab, setTab] = useState<'friends' | 'walks' | 'trails'>('friends');
 
-  useEffect(() => {
-    fetchDistricts().then(setArea);
+  const matches = useMemo(() => (myDog ? findMatches(myDog, neighborhood) : []), [myDog]);
+  const canMeet = matches.filter((m) => m.reachable && m.verdict !== 'blocked');
 
-    const id = loadDogId();
-    if (!id) return setLoading(false);
-
-    fetchScreen(id)
-      .then(setScreen)
-      .catch(() => {
-        // 서버에 없는 id 라면(DB 초기화 등) 등록부터 다시 받는다
-        clearDogId();
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  const run = async (action: () => Promise<Screen>) => {
-    setError('');
-    try {
-      const next = await action();
-      saveDogId(next.dog.id);
-      setScreen(next);
-      setEditing(false);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '요청을 처리할 수 없습니다.');
-    }
+  const onSave = (dog: Dog) => {
+    setMyDog(dog);
+    save(dog);
+    setEditing(false);
   };
 
-  if (loading) {
+  // 등록한 프로필이 없으면 등록부터 받는다
+  if (!myDog || editing) {
     return (
       <main>
         <h1>멍메이트</h1>
-        <p className="notice">불러오는 중…</p>
-      </main>
-    );
-  }
-
-  // 등록한 프로필이 없으면 등록부터 받는다.
-  // 샘플 강아지를 기본값으로 보여주면 남의 개가 내 개로 보이고, 그 기준으로 매칭까지 돌아간다.
-  if (!screen || editing) {
-    return (
-      <main>
-        <h1>멍메이트</h1>
-        {error && <p className="error">{error}</p>}
         <ProfileForm
-          dog={screen?.dog ?? blankDog()}
-          districts={area.districts}
-          areaNotice={area.areaNotice}
-          onSave={(dog) => run(() => saveDog(dog))}
-          onCancel={screen ? () => setEditing(false) : undefined}
+          dog={myDog ?? blankDog()}
+          onSave={onSave}
+          onCancel={myDog ? () => setEditing(false) : undefined}
         />
       </main>
     );
   }
 
-  const { dog, groups, emptyMessage, firstMeetingNotice } = screen;
-
   return (
     <main>
-      <header>
-        <h1>멍메이트</h1>
-        <div className="my-dog">
-          <div>
-            <strong>{dog.name}</strong>
-            <span className="subtitle">
-              {dog.breed} · {dog.weightKg}kg · {formatAge(dog.ageMonths)}
-            </span>
-            <p className="my-tags">{profileSummary(dog)}</p>
-          </div>
-          <button type="button" className="ghost" onClick={() => setEditing(true)}>
-            수정
-          </button>
+      <h1>멍메이트</h1>
+
+      <div className="me">
+        <div>
+          <strong>{myDog.name}</strong> <span className="sub">{describe(myDog)}</span>
+          <p className="sub">
+            {myDog.district} · {myDog.walkTimes?.join(', ') || '산책 시간대 미기재'}
+          </p>
         </div>
-      </header>
-
-      <nav className="tabs">
-        <button
-          type="button"
-          className={tab === 'friends' ? 'on' : ''}
-          onClick={() => setTab('friends')}
-        >
-          산책 친구
+        <button type="button" onClick={() => setEditing(true)}>
+          수정
         </button>
-        <button type="button" className={tab === 'walks' ? 'on' : ''} onClick={() => setTab('walks')}>
-          산책 약속
-        </button>
-        <button
-          type="button"
-          className={tab === 'trails' ? 'on' : ''}
-          onClick={() => setTab('trails')}
-        >
-          산책로
-        </button>
-      </nav>
+      </div>
 
-      {error && <p className="error">{error}</p>}
+      {/* 판정 결과와 무관하게 항상 같은 안내를 붙인다.
+          "만나도 좋아요"일 때 완화하면 그 방심이 사고를 만든다 */}
+      <p className="notice">{FIRST_MEETING_NOTICE}</p>
 
-      {tab === 'walks' && <Walks dogId={dog.id} />}
-      {tab === 'trails' && <Trails dogId={dog.id} />}
-
-      {tab === 'friends' && emptyMessage && (
+      {canMeet.length === 0 && (
         <div className="empty">
-          <p>{emptyMessage}</p>
-          <button type="button" className="ghost" onClick={() => setEditing(true)}>
+          <p>{emptyMessage(myDog, matches)}</p>
+          <button type="button" onClick={() => setEditing(true)}>
             프로필 고치기
           </button>
         </div>
       )}
 
-      {tab === 'friends' &&
-        groups.map(({ group, heading, items }) =>
-        // 권하지 않는 조합은 접어둔다. 이유는 볼 수 있어야 하지만 매번 펼쳐져 있을 필요는 없다.
-        group === 'blocked' ? (
-          <details key={group} className="blocked-section">
-            <summary>
-              {heading} <span className="count">{items.length}</span>
-            </summary>
-            <ul className="cards">
-              {items.map((view) => (
-                <DogCard
-                  key={view.id}
-                  view={view}
-                  group={group}
-                  notice={firstMeetingNotice}
-                  onRequest={(id) => run(() => sendRequest(dog.id, id))}
-                />
-              ))}
-            </ul>
-          </details>
-        ) : (
-          <section key={group}>
-            <h2>
-              {heading} <span className="count">{items.length}</span>
-            </h2>
-            <ul className="cards">
-              {items.map((view) => (
-                <DogCard
-                  key={view.id}
-                  view={view}
-                  group={group}
-                  notice={firstMeetingNotice}
-                  onRequest={(id) => run(() => sendRequest(dog.id, id))}
-                />
-              ))}
-            </ul>
-          </section>
-        ),
-      )}
+      <ul className="cards">
+        {matches.map((m) => (
+          <MatchCard key={m.dog.id} match={m} />
+        ))}
+      </ul>
     </main>
   );
 }

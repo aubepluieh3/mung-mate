@@ -1,34 +1,17 @@
 export type Sex = 'male' | 'female';
 
-/** 성향 태그 — 견주 진술이라 점수(순위)에만 쓴다. 차단 판정에는 쓰지 않는다. */
-export type Temperament =
-  | '활발함'
-  | '차분함'
-  | '개좋아함'
-  | '사람좋아'
-  | '겁많음'
-  | '짖음많음';
-
-/** 견주가 원하는 만남 조건. 필터로 쓰되 안전 신호로는 해석하지 않는다. */
-export type MeetPreference = '1:1만' | '비슷한체급만' | '조용한친구만' | '목줄인사부터';
-
 /** 주로 산책하는 시간대. 실제로 만날 수 있는지를 가르는 값이다. */
 export type WalkTime = '아침' | '점심' | '저녁' | '밤';
 
-/**
- * 나이를 견주가 말하는 방식으로 적는다.
- *
- * 살로만 쓰면 6개월 강아지가 "0살"이 된다. 퍼피는 개월이 판정을 가르는 값이기도 하다
- * (4개월 미만은 접종 전이라 차단). 두 살이 넘으면 개월은 의미가 없어 살만 쓴다.
- */
-export const formatAge = (ageMonths: number): string => {
-  const years = Math.floor(ageMonths / 12);
-  const months = ageMonths % 12;
-  if (years === 0) return `${months}개월`;
-  if (years < 2 && months > 0) return `${years}살 ${months}개월`;
-  return `${years}살`;
-};
+export const WALK_TIMES: WalkTime[] = ['아침', '점심', '저녁', '밤'];
 
+/**
+ * 판정에 쓰는 값만 받는다.
+ *
+ * 성향(활발함·겁많음 같은 것)은 받지 않는다. 견주 진술이라 판정에 쓸 수 없고,
+ * 판정에 안 쓰는 정보를 물어보면 견주는 "이걸 왜 적나" 싶다.
+ * 발정 여부도 받지 않는다 — 켜고 끄는 걸 기억해야 하는 상태는 프로필에 둘 수 없다.
+ */
 export type Dog = {
   id: string;
   name: string;
@@ -37,29 +20,20 @@ export type Dog = {
   weightKg: number;
   sex: Sex;
   neutered: boolean;
-  /**
-   * 발정 여부는 받지 않는다.
-   *
-   * 발정은 6개월에 한 번 2~3주 오는 '상태'인데 프로필 체크박스는 '속성'이다.
-   * 끄는 걸 잊으면 11개월 동안 부당하게 차단되고, 켜는 걸 잊으면 위험이 그대로 노출된다.
-   * 게다가 체크하면 매칭이 줄어드니, 발정기에는 앱을 안 켜는 게 견주의 합리적 선택이 된다
-   * — 정직하게 적은 소수에게만 불이익이 가는 구조다.
-   *
-   * 그래서 중성화 여부(바꿔 적을 이유가 없는 사실)만 보고 판정한다.
-   */
-
   /** 활동하는 동 이름. 정확한 주소는 받지 않는다 — 동 단위까지만. */
   district?: string;
-  /** 주로 산책하는 시간대. 비어 있으면 만날 수 있는지 판단할 수 없다. */
   walkTimes?: WalkTime[];
-  temperaments: Temperament[];
-  preferences: MeetPreference[];
-  /**
-   * "우리 개는 낯선 개에게 예민해요."
-   * 체크하면 같은 처지의 견주와 우선 매칭된다 — 정직하게 적을 이유를 만들어주기 위한 항목이다.
-   * 낙인 태그로 쓰지 않는다.
-   */
-  sensitiveToDogs?: boolean;
-  /** 성향 태그를 마지막으로 확인한 시각(ISO). 오래되면 점수에서 신뢰를 낮춘다. */
-  temperamentsUpdatedAt?: string;
+};
+
+/**
+ * 나이를 견주가 말하는 방식으로 적는다.
+ * 살로만 쓰면 6개월 강아지가 "0살"이 된다. 퍼피는 개월이 판정을 가르는 값이다
+ * (4개월 미만은 접종 전이라 차단).
+ */
+export const formatAge = (ageMonths: number): string => {
+  const years = Math.floor(ageMonths / 12);
+  const months = ageMonths % 12;
+  if (years === 0) return `${months}개월`;
+  if (years < 2 && months > 0) return `${years}살 ${months}개월`;
+  return `${years}살`;
 };
