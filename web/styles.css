@@ -1,0 +1,272 @@
+:root {
+  --bg: #faf8f5;
+  --card: #fff;
+  --line: #e6e1da;
+  --text: #2c2723;
+  --muted: #7d746a;
+  --good: #2f7a4f;
+  --fine: #4a6f8a;
+  --careful: #a8712a;
+  --blocked: #99908a;
+  font-family: 'Pretendard', -apple-system, 'Malgun Gothic', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 64px;
+}
+
+h1 {
+  font-size: 24px;
+  margin: 0 0 16px;
+}
+
+header label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+header select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 10px;
+  font-size: 15px;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: inherit;
+}
+
+.my-tags {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.notice {
+  margin: 20px 0 8px;
+  padding: 12px 14px;
+  font-size: 13px;
+  background: #fff8e8;
+  border: 1px solid #f0e0bc;
+  border-radius: 8px;
+  color: #6b5a35;
+}
+
+h2 {
+  font-size: 15px;
+  margin: 32px 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--fine);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.card.good {
+  border-left-color: var(--good);
+}
+.card.fine {
+  border-left-color: var(--fine);
+}
+.card.careful {
+  border-left-color: var(--careful);
+}
+.card.low,
+.card.unknown,
+.card.blocked {
+  border-left-color: var(--blocked);
+  background: #f7f5f2;
+}
+
+.card.compact {
+  padding: 10px 14px;
+}
+
+.card.compact .card-head {
+  gap: 6px;
+}
+
+.verdict-inline {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--blocked);
+  white-space: nowrap;
+}
+
+.card.compact summary,
+.blocked-section summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.card.compact summary {
+  margin-top: 4px;
+}
+
+.watch-out {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #6b625a;
+}
+
+.blocked-section {
+  margin-top: 32px;
+  padding: 12px 14px;
+  background: #f4f2ef;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.blocked-section summary {
+  font-size: 14px;
+  color: var(--text);
+}
+
+.blocked-section .cards {
+  margin-top: 12px;
+}
+
+.alternative {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.request {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.request-guide {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #6b5a35;
+  background: #fff8e8;
+  border: 1px solid #f0e0bc;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.request-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.request-actions .primary {
+  flex: 1;
+}
+
+.ghost {
+  width: auto;
+  padding: 11px 16px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+}
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.name {
+  font-size: 17px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.verdict {
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card.good .verdict {
+  color: var(--good);
+}
+.card.fine .verdict {
+  color: var(--fine);
+}
+.card.careful .verdict {
+  color: var(--careful);
+}
+.card.low .verdict,
+.card.unknown .verdict,
+.card.blocked .verdict {
+  color: var(--blocked);
+}
+
+.highlight {
+  margin: 8px 0 0;
+  font-size: 14px;
+}
+
+.watch-outs {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #6b625a;
+}
+
+button {
+  margin-top: 12px;
+  width: 100%;
+  padding: 11px;
+  font-size: 14px;
+  font-family: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--text);
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #ddd7d0;
+  color: #8b827a;
+  cursor: not-allowed;
+}
