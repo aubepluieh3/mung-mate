@@ -514,3 +514,21 @@ button:disabled {
   color: var(--fine);
   line-height: 1.7;
 }
+
+.area-notice {
+  display: block;
+  margin: -6px 0 14px;
+  line-height: 1.6;
+}
+
+.map-link {
+  display: inline-block;
+  margin-top: 10px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  background: #fee500;
+  border-radius: 8px;
+  text-decoration: none;
+}

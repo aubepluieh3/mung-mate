@@ -16,12 +16,14 @@ const MAX_TEMPERAMENTS = 3;
 type Props = {
   dog: Dog;
   districts: string[];
+  /** 서비스 지역 안내. 서버가 만든 문장을 그대로 보여준다 — 판정 코드를 화면으로 끌어오지 않기 위해서다. */
+  areaNotice: string;
   onSave: (dog: Dog) => void;
   /** 처음 등록하는 중이면 없다 — 취소할 이전 프로필이 없다. */
   onCancel?: () => void;
 };
 
-export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
+export function ProfileForm({ dog, districts, areaNotice, onSave, onCancel }: Props) {
   const isNew = !onCancel;
   const [draft, setDraft] = useState<Dog>(dog);
   const [years, setYears] = useState(Math.floor(dog.ageMonths / 12));
@@ -176,6 +178,8 @@ export function ProfileForm({ dog, districts, onSave, onCancel }: Props) {
           ))}
         </select>
       </label>
+      {/* 목록에 자기 동네가 없는 견주가 이유를 모르고 떠나면 안 된다 */}
+      <p className="hint area-notice">{areaNotice}</p>
 
       <fieldset>
         <legend>주로 산책하는 시간대</legend>

@@ -74,9 +74,11 @@ export const createWalk = (walk: {
 export const joinWalk = (walkId: string, dogId: string) =>
   command('/api/walks/join', { walkId, dogId });
 
-export const fetchDistricts = async (): Promise<string[]> => {
+export type AreaInfo = { districts: string[]; areaNotice: string };
+
+export const fetchDistricts = async (): Promise<AreaInfo> => {
   const res = await fetch('/api/districts');
-  if (!res.ok) return [];
-  const body = (await res.json()) as { districts?: string[] };
-  return body.districts ?? [];
+  if (!res.ok) return { districts: [], areaNotice: '' };
+  const body = (await res.json()) as Partial<AreaInfo>;
+  return { districts: body.districts ?? [], areaNotice: body.areaNotice ?? '' };
 };

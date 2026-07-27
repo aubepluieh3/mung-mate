@@ -6,7 +6,14 @@ import { ProfileForm } from './ProfileForm.tsx';
 import { Walks } from './Walks.tsx';
 import { Trails } from './Trails.tsx';
 import { blankDog, clearDogId, loadDogId, saveDogId } from './storage.ts';
-import { fetchDistricts, fetchScreen, saveDog, sendRequest, type Screen } from './api.ts';
+import {
+  fetchDistricts,
+  fetchScreen,
+  saveDog,
+  sendRequest,
+  type AreaInfo,
+  type Screen,
+} from './api.ts';
 
 /** 이 단계는 목록에서 한 줄로 접는다. 안 만날 상대에게 카드 한 장을 주면 목록이 안 읽힌다. */
 const isCompact = (view: MatchView) => view.tier === 'low';
@@ -119,14 +126,14 @@ const profileSummary = (dog: Dog) =>
 
 export function App() {
   const [screen, setScreen] = useState<Screen | null>(null);
-  const [districts, setDistricts] = useState<string[]>([]);
+  const [area, setArea] = useState<AreaInfo>({ districts: [], areaNotice: '' });
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'friends' | 'walks' | 'trails'>('friends');
 
   useEffect(() => {
-    fetchDistricts().then(setDistricts);
+    fetchDistricts().then(setArea);
 
     const id = loadDogId();
     if (!id) return setLoading(false);
@@ -170,7 +177,8 @@ export function App() {
         {error && <p className="error">{error}</p>}
         <ProfileForm
           dog={screen?.dog ?? blankDog()}
-          districts={districts}
+          districts={area.districts}
+          areaNotice={area.areaNotice}
           onSave={(dog) => run(() => saveDog(dog))}
           onCancel={screen ? () => setEditing(false) : undefined}
         />

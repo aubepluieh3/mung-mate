@@ -160,6 +160,15 @@ export const GROUP_HEADING = {
   blocked: '이번에는 권하지 않는 조합',
 } as const;
 
+/**
+ * 지금 운영하는 지역. 동네 인접 관계를 손으로 적어야 해서 한 지역부터 시작한다.
+ * 목록에 자기 동네가 없는 견주가 이유를 모르고 떠나지 않게 화면에서 분명히 알린다.
+ */
+export const SERVICE_AREA = '서울 마포구';
+
+export const serviceAreaNotice = (districts: string[]) =>
+  `지금은 ${SERVICE_AREA}에서만 운영해요. (${districts.join(' · ')}) 다른 동네는 준비 중입니다.`;
+
 /** 요청을 보내기로 결정한 순간에 보여줄 안내. 목록 위에 띄워두면 읽지 않고 지나간다. */
 export const firstMeetingNotice =
   '처음 만나는 친구와는 사람이 많은 공개된 장소에서 만나주세요. 서로의 집 앞은 텃세가 생기기 쉽습니다.';

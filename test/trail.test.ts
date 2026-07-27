@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toTrailView, TRAIL_TAGS, type Trail } from '../src/trail.ts';
+import { kakaoMapUrl, toTrailView, TRAIL_TAGS, type Trail } from '../src/trail.ts';
+import { serviceAreaNotice } from '../src/present.ts';
 
 const trail = (over: Partial<Trail> = {}): Trail => ({
   id: 't1',
@@ -38,4 +39,24 @@ test('목줄을 풀어도 된다는 태그는 두지 않는다', () => {
   // 안전을 우선하는 앱이 위법을 권하는 태그를 가질 수는 없어서 울타리 정보로 대신한다
   assert.ok(!TRAIL_TAGS.some((t) => t.includes('목줄')));
   assert.ok(TRAIL_TAGS.includes('울타리있음'));
+});
+
+test('카카오맵 링크는 동네와 이름으로 검색한다', () => {
+  // 지도를 화면에 띄우려면 앱키가 필요하지만 검색 링크는 키 없이 된다
+  const url = kakaoMapUrl('성산동', '망원한강공원 산책길');
+  assert.ok(url.startsWith('https://map.kakao.com/link/search/'));
+  assert.equal(decodeURIComponent(url.split('/search/')[1]), '성산동 망원한강공원 산책길');
+});
+
+test('뷰에 지도 링크가 들어간다', () => {
+  assert.ok(toTrailView(trail(), '성산동', false).mapUrl.includes('map.kakao.com'));
+});
+
+test('서비스 지역 안내에 운영 동네가 모두 들어간다', () => {
+  // 목록에 자기 동네가 없는 견주가 이유를 모르고 떠나면 안 된다
+  const notice = serviceAreaNotice(['성산동', '망원동']);
+  assert.match(notice, /서울 마포구/);
+  assert.match(notice, /성산동/);
+  assert.match(notice, /망원동/);
+  assert.match(notice, /준비 중/);
 });

@@ -51,7 +51,17 @@ export type TrailView = {
   nearby: boolean;
   /** 밤에 걷는 견주에게 조명 정보는 안전 문제다. */
   nightWarning: string;
+  /** 카카오맵에서 이 장소를 검색해 여는 주소. */
+  mapUrl: string;
 };
+
+/**
+ * 카카오맵 검색 링크.
+ * 지도를 화면에 띄우려면 앱키가 필요하지만, 링크는 키 없이 된다 —
+ * "이 산책로가 어디인지"는 이것만으로 해결된다.
+ */
+export const kakaoMapUrl = (district: string, name: string) =>
+  `https://map.kakao.com/link/search/${encodeURIComponent(`${district} ${name}`)}`;
 
 export function toTrailView(trail: Trail, myDistrict: string | undefined, walksAtNight: boolean): TrailView {
   return {
@@ -65,5 +75,6 @@ export function toTrailView(trail: Trail, myDistrict: string | undefined, walksA
       walksAtNight && !trail.tags.includes('야간조명있음')
         ? '밤에는 어두울 수 있어요. 조명이 있는 길을 먼저 확인해보세요.'
         : '',
+    mapUrl: kakaoMapUrl(trail.district, trail.name),
   };
 }

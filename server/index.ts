@@ -1,6 +1,11 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { findMatches } from '../src/match.ts';
-import { buildMatchScreen, firstMeetingNotice, toWalkView } from '../src/present.ts';
+import {
+  buildMatchScreen,
+  firstMeetingNotice,
+  serviceAreaNotice,
+  toWalkView,
+} from '../src/present.ts';
 import { checkJoin, MAX_PARTICIPANTS, type Walk } from '../src/walk.ts';
 import { toTrailView, TRAIL_TAGS, type TrailTag } from '../src/trail.ts';
 import { isWalkable } from '../src/reach.ts';
@@ -143,7 +148,10 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
     return [200, screenFor(from)];
   },
 
-  'GET /api/districts': async () => [200, { districts: Object.keys(districtGraph) }],
+  'GET /api/districts': async () => {
+    const districts = Object.keys(districtGraph);
+    return [200, { districts, areaNotice: serviceAreaNotice(districts) }];
+  },
 
   /**
    * 근처 산책 일정. 참여 가능 여부를 서버가 판정해서 내려준다.

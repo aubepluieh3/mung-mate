@@ -172,6 +172,9 @@ export function Trails({ dogId }: { dogId: string }) {
               <p className="trail-tags">{t.tags.map((tag) => `#${tag}`).join(' ')}</p>
             )}
             {t.nightWarning && <p className="alternative">{t.nightWarning}</p>}
+            <a className="map-link" href={t.mapUrl} target="_blank" rel="noreferrer noopener">
+              카카오맵에서 보기
+            </a>
           </li>
         ))}
       </ul>
