@@ -28,10 +28,12 @@ const VERDICTS: { min: number; label: string }[] = [
   { min: 75, label: '잘 맞을 것 같아요' },
   { min: 50, label: '괜찮은 편이에요' },
   { min: 30, label: '천천히 만나보세요' },
-  { min: 0, label: '성향이 많이 달라요' },
+  { min: 0, label: '' }, // 최하 등급은 원인에 따라 문구가 갈린다
 ];
 
 const MAX_WATCH_OUTS = 2;
+/** 태그 궁합의 중립값. 여기서 얼마나 내려왔는지가 성향으로 인한 손실이다. */
+const NEUTRAL_TAG_FIT = 50;
 
 /** 차단 사유별로 다음에 뭘 하면 되는지 알려준다. 막기만 하면 견주는 앱을 떠난다. */
 const ALTERNATIVE: Record<string, string> = {
@@ -44,7 +46,20 @@ const ALTERNATIVE: Record<string, string> = {
 const verdictOf = (m: MatchCandidate): string => {
   if (m.group === 'blocked') return '이 조합은 권하지 않아요';
   if (m.group === 'unknown') return '아직 성향을 적지 않은 친구예요';
-  return VERDICTS.find((v) => m.score! >= v.min)!.label;
+
+  const base = VERDICTS.findIndex((v) => m.score! >= v.min);
+  // 안전 경고가 붙은 조합을 최상위 등급으로 올리지 않는다.
+  // 점수가 높다고 안내를 완화하면 그 방심이 사고를 만든다.
+  const index = Math.min(base + (m.gate.findings.length > 0 ? 1 : 0), VERDICTS.length - 1);
+
+  if (index === VERDICTS.length - 1) {
+    // 성향은 맞는데 체급·나이 때문에 점수가 깎인 경우까지 "성향이 다르다"고 하면
+    // 견주에게 틀린 이유를 알려주는 것이다. 어느 쪽이 더 깎았는지 비교한다.
+    const byTemperament = Math.max(0, NEUTRAL_TAG_FIT - m.tagFit!);
+    const byCondition = m.tagFit! - m.score!;
+    return byTemperament >= byCondition ? '성향이 많이 달라요' : '조건 차이가 커요';
+  }
+  return VERDICTS[index].label;
 };
 
 const guidanceOf = (m: MatchCandidate): string => {

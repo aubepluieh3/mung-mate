@@ -24,6 +24,8 @@ export type MatchCandidate = {
   gate: GateResult;
   /** 차단된 상대와 정보가 없는 상대는 null. */
   score: number | null;
+  /** 물리 계수를 곱하기 전의 태그 궁합. 점수가 낮은 원인이 성향인지 체급인지 구분하는 데 쓴다. */
+  tagFit: number | null;
   pairs: TagPair[];
   factors: Factor[];
   tagTrust: number;
@@ -38,7 +40,7 @@ export function findMatches(me: Dog, others: Dog[], now: Date = new Date()): Mat
     .map((other): MatchCandidate => {
       const gate = evaluateGate(me, other);
       const blocked = gate.level === 'block';
-      const { score, pairs, factors, tagTrust } = computeScore(me, other, now);
+      const { score, tagFit, pairs, factors, tagTrust } = computeScore(me, other, now);
 
       const group: MatchGroup = blocked ? 'blocked' : score === null ? 'unknown' : 'match';
       return {
@@ -50,6 +52,7 @@ export function findMatches(me: Dog, others: Dog[], now: Date = new Date()): Mat
           : gate,
         // 차단이면 점수를 계산했더라도 노출하지 않는다
         score: blocked ? null : score,
+        tagFit: blocked ? null : tagFit,
         pairs: blocked ? [] : pairs,
         factors: blocked ? [] : factors,
         tagTrust,

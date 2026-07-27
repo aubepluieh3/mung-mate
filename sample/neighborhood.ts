@@ -19,6 +19,9 @@ export const me: Dog = {
   temperamentsUpdatedAt: RECENT,
 };
 
+/** 시점을 바꿔가며 확인하려면 이걸 쓴다. findMatches 가 자기 자신은 걸러낸다. */
+export const allDogs = (): Dog[] => [me, ...neighborhood];
+
 export const neighborhood: Dog[] = [
   {
     id: 'kong',

@@ -2,11 +2,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { findMatches } from '../src/match.ts';
 import { toView } from '../src/present.ts';
-import { me, neighborhood } from '../sample/neighborhood.ts';
+import { me, neighborhood, allDogs } from '../sample/neighborhood.ts';
 
 const NOW = new Date('2026-07-27T00:00:00Z');
 const views = findMatches(me, neighborhood, NOW).map(toView);
 const byName = (name: string) => views.find((v) => v.name === name)!;
+
+/** 다른 견주 시점으로 본 화면. 시점을 바꾸면 룰의 이상함이 드러난다. */
+const viewFrom = (viewerName: string, targetName: string) => {
+  const dogs = allDogs();
+  const viewer = dogs.find((d) => d.name === viewerName)!;
+  return findMatches(viewer, dogs, NOW).map(toView).find((v) => v.name === targetName)!;
+};
 
 /** 점수와 산식이 새어나가는 패턴. 체급 "1.9배" 같은 정보는 견주에게 유용하므로 허용한다. */
 const LEAK = /×|\d+\s*점|[+-]\d+\s/;
@@ -24,6 +31,21 @@ test('등급은 점수 대신 문장으로 나온다', () => {
   assert.equal(byName('할부지').verdict, '괜찮은 편이에요'); // 68점
   assert.equal(byName('까미').verdict, '천천히 만나보세요'); // 38점
   assert.equal(byName('방울').verdict, '성향이 많이 달라요'); // 8점
+});
+
+test('안전 경고가 붙은 조합은 최상위 등급으로 올리지 않는다', () => {
+  // 초코와 흰둥은 궁합 점수가 높지만 둘 다 중성화하지 않은 성견 수컷이다
+  const heundung = viewFrom('초코', '흰둥');
+  assert.notEqual(heundung.verdict, '잘 맞을 것 같아요');
+  assert.equal(heundung.verdict, '괜찮은 편이에요');
+  assert.ok(heundung.watchOuts.some((w) => w.includes('중성화하지 않은 성견 수컷')));
+});
+
+test('점수가 낮은 원인이 성향인지 조건인지 구분해서 말한다', () => {
+  // 토리(겁많음) → 방울(활발+개좋아함): 체급은 비슷하고 성향이 정면으로 부딪힌다
+  assert.equal(byName('방울').verdict, '성향이 많이 달라요');
+  // 토리(8kg 겁많음) → 별이(20kg 차분+개좋아함): 성향은 나쁘지 않은데 체급 2.5배가 깎았다
+  assert.equal(byName('별이').verdict, '조건 차이가 커요');
 });
 
 test('차단은 상대가 아니라 조합의 문제로 표현한다', () => {
