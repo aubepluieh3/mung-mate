@@ -1,12 +1,17 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { findMatches } from '../src/match.ts';
-import { buildMatchScreen, firstMeetingNotice } from '../src/present.ts';
-import type { Dog } from '../src/dog.ts';
+import { buildMatchScreen, firstMeetingNotice, toWalkView } from '../src/present.ts';
+import { checkJoin, MAX_PARTICIPANTS, type Walk } from '../src/walk.ts';
+import type { Dog, WalkTime } from '../src/dog.ts';
 import {
   addRequest,
   allDogs,
+  allWalks,
+  createWalk,
   districtGraph,
   findDog,
+  findWalk,
+  joinWalk,
   requestsFrom,
   saveDog,
   seed,
@@ -124,7 +129,80 @@ const routes: Record<string, (req: IncomingMessage, url: URL) => Promise<[number
   },
 
   'GET /api/districts': async () => [200, { districts: Object.keys(districtGraph) }],
+
+  /**
+   * 근처 산책 일정. 참여 가능 여부를 서버가 판정해서 내려준다.
+   * 같은 동이나 인접 동만 보여준다 — 걸어갈 수 없는 일정은 목록에 있을 이유가 없다.
+   */
+  'GET /api/walks': async (_req, url) => {
+    const dog = findDog(url.searchParams.get('dogId') ?? '');
+    if (!dog) return [404, { error: '등록된 프로필을 찾을 수 없습니다.' }];
+
+    const near = (d: string) =>
+      d === dog.district || (dog.district ? (districtGraph[dog.district] ?? []).includes(d) : false);
+
+    const walks = allWalks()
+      .filter((w) => near(w.district) && w.date >= today())
+      .map((w) => {
+        const participants = w.participantIds.map(findDog).filter((d): d is Dog => d !== null);
+        return toWalkView(w, participants, checkJoin(w, dog, participants), dog.id);
+      });
+
+    return [200, { walks, maxParticipants: MAX_PARTICIPANTS, firstMeetingNotice }];
+  },
+
+  /** 산책 일정 만들기. */
+  'POST /api/walks': async (req) => {
+    const body = (await readBody(req)) as Record<string, unknown>;
+    const host = findDog(String(body.hostId ?? ''));
+    if (!host) return [404, { error: '등록된 프로필을 찾을 수 없습니다.' }];
+    if (!host.district) return [400, { error: '동네를 먼저 적어주세요.' }];
+
+    const date = String(body.date ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('날짜를 골라주세요.');
+    if (date < today()) throw new Error('지난 날짜로는 만들 수 없어요.');
+    if (!WALK_TIMES.has(String(body.time))) throw new Error('시간대를 골라주세요.');
+
+    const place = String(body.place ?? '').trim();
+    if (!place) throw new Error('만날 장소를 적어주세요.');
+
+    const minutes = Number(body.minutes);
+    if (!Number.isFinite(minutes) || minutes < 10 || minutes > 180) {
+      throw new Error('산책 시간은 10분에서 180분 사이로 적어주세요.');
+    }
+
+    const capacity = Math.min(Math.max(Number(body.capacity) || 2, 2), MAX_PARTICIPANTS);
+
+    createWalk({
+      hostId: host.id,
+      district: host.district,
+      date,
+      time: String(body.time) as WalkTime,
+      place,
+      minutes: Math.round(minutes),
+      capacity,
+    });
+    return [200, { ok: true }];
+  },
+
+  /** 참여 신청. 이미 참여한 개들과 전부 쌍으로 검사한다. */
+  'POST /api/walks/join': async (req) => {
+    const body = (await readBody(req)) as { walkId?: string; dogId?: string };
+    const dog = findDog(String(body.dogId ?? ''));
+    const walk = findWalk(String(body.walkId ?? ''));
+    if (!dog || !walk) return [404, { error: '산책을 찾을 수 없습니다.' }];
+
+    const participants = walk.participantIds.map(findDog).filter((d): d is Dog => d !== null);
+    const check = checkJoin(walk, dog, participants);
+    // 화면에서 버튼을 감췄더라도 서버가 다시 막는다
+    if (!check.ok) return [409, { error: check.reason }];
+
+    joinWalk(walk.id, dog.id);
+    return [200, { ok: true }];
+  },
 };
+
+const today = () => new Date().toISOString().slice(0, 10);
 
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://${req.headers.host}`);

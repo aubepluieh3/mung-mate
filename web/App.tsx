@@ -3,6 +3,7 @@ import type { MatchGroup } from '../src/match.ts';
 import type { MatchView } from '../src/present.ts';
 import type { Dog } from '../src/dog.ts';
 import { ProfileForm } from './ProfileForm.tsx';
+import { Walks } from './Walks.tsx';
 import { blankDog, clearDogId, loadDogId, saveDogId } from './storage.ts';
 import { fetchDistricts, fetchScreen, saveDog, sendRequest, type Screen } from './api.ts';
 
@@ -121,6 +122,7 @@ export function App() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [tab, setTab] = useState<'friends' | 'walks'>('friends');
 
   useEffect(() => {
     fetchDistricts().then(setDistricts);
@@ -195,9 +197,24 @@ export function App() {
         </div>
       </header>
 
+      <nav className="tabs">
+        <button
+          type="button"
+          className={tab === 'friends' ? 'on' : ''}
+          onClick={() => setTab('friends')}
+        >
+          산책 친구
+        </button>
+        <button type="button" className={tab === 'walks' ? 'on' : ''} onClick={() => setTab('walks')}>
+          산책 약속
+        </button>
+      </nav>
+
       {error && <p className="error">{error}</p>}
 
-      {emptyMessage && (
+      {tab === 'walks' && <Walks dogId={dog.id} />}
+
+      {tab === 'friends' && emptyMessage && (
         <div className="empty">
           <p>{emptyMessage}</p>
           <button type="button" className="ghost" onClick={() => setEditing(true)}>
@@ -206,7 +223,8 @@ export function App() {
         </div>
       )}
 
-      {groups.map(({ group, heading, items }) =>
+      {tab === 'friends' &&
+        groups.map(({ group, heading, items }) =>
         // 권하지 않는 조합은 접어둔다. 이유는 볼 수 있어야 하지만 매번 펼쳐져 있을 필요는 없다.
         group === 'blocked' ? (
           <details key={group} className="blocked-section">

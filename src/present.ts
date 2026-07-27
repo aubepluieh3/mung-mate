@@ -1,5 +1,6 @@
 import type { Dog } from './dog.ts';
 import type { MatchCandidate, MatchGroup } from './match.ts';
+import type { JoinCheck, Walk } from './walk.ts';
 import { conj, topic } from './josa.ts';
 
 /**
@@ -192,6 +193,45 @@ export type MatchScreen = {
   /** 만날 수 있는 친구가 없을 때만 채워진다. */
   emptyMessage: string;
 };
+
+export type WalkView = {
+  id: string;
+  /** "8월 1일 저녁 · 30분" */
+  when: string;
+  place: string;
+  district: string;
+  /** "토리, 보리 (2/3)" */
+  participants: string;
+  /** 내가 이미 참여한 산책인가. */
+  joined: boolean;
+  /** 참여 신청을 누를 수 있는가. */
+  joinable: boolean;
+  /** 못 들어가는 이유, 또는 들어갈 때 알아둘 점. */
+  notes: string[];
+};
+
+/** 견주에게 보여줄 산책 한 건. 참여 가능 여부는 서버가 판정해서 내려준다. */
+export function toWalkView(
+  walk: Walk,
+  participants: Dog[],
+  check: JoinCheck,
+  myId: string,
+): WalkView {
+  const joined = walk.participantIds.includes(myId);
+  const [, month, day] = walk.date.split('-');
+  return {
+    id: walk.id,
+    when: `${Number(month)}월 ${Number(day)}일 ${walk.time} · ${walk.minutes}분`,
+    place: walk.place,
+    district: walk.district,
+    participants: `${participants.map((d) => d.name).join(', ')} (${walk.participantIds.length}/${walk.capacity})`,
+    joined,
+    joinable: !joined && check.ok,
+    notes: check.ok
+      ? check.cautions.map((f) => f.message).slice(0, MAX_WATCH_OUTS)
+      : [check.reason, ...check.blockers.map((f) => f.message)].slice(0, MAX_WATCH_OUTS + 1),
+  };
+}
 
 const GROUP_ORDER: MatchGroup[] = ['reachable', 'far', 'blocked'];
 

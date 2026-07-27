@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
 import type { Dog, MeetPreference, Sex, Temperament, WalkTime } from '../src/dog.ts';
+import type { Walk } from '../src/walk.ts';
 import { me, neighborhood, districts } from '../sample/neighborhood.ts';
 
 /**
@@ -36,6 +37,24 @@ db.exec(`
     to_id      TEXT NOT NULL,
     created_at TEXT NOT NULL,
     PRIMARY KEY (from_id, to_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS walks (
+    id        TEXT PRIMARY KEY,
+    host_id   TEXT NOT NULL,
+    district  TEXT NOT NULL,
+    date      TEXT NOT NULL,
+    time      TEXT NOT NULL,
+    place     TEXT NOT NULL,
+    minutes   INTEGER NOT NULL,
+    capacity  INTEGER NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS walk_participants (
+    walk_id   TEXT NOT NULL,
+    dog_id    TEXT NOT NULL,
+    joined_at TEXT NOT NULL,
+    PRIMARY KEY (walk_id, dog_id)
   );
 `);
 
@@ -126,6 +145,59 @@ export const addRequest = (fromId: string, toId: string) =>
 
 export const requestsFrom = (fromId: string): string[] =>
   (selectRequests.all(fromId) as Row[]).map((r) => String(r.to_id));
+
+// --- 산책 약속 ---
+
+const insertWalk = db.prepare(
+  'INSERT INTO walks (id, host_id, district, date, time, place, minutes, capacity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+);
+const insertParticipant = db.prepare(
+  'INSERT OR IGNORE INTO walk_participants (walk_id, dog_id, joined_at) VALUES (?, ?, ?)',
+);
+const selectWalks = db.prepare('SELECT * FROM walks ORDER BY date, time');
+const selectWalk = db.prepare('SELECT * FROM walks WHERE id = ?');
+const selectParticipants = db.prepare(
+  'SELECT dog_id FROM walk_participants WHERE walk_id = ? ORDER BY joined_at',
+);
+
+const toWalk = (row: Row): Walk => ({
+  id: String(row.id),
+  hostId: String(row.host_id),
+  district: String(row.district),
+  date: String(row.date),
+  time: String(row.time) as WalkTime,
+  place: String(row.place),
+  minutes: Number(row.minutes),
+  capacity: Number(row.capacity),
+  participantIds: (selectParticipants.all(String(row.id)) as Row[]).map((r) => String(r.dog_id)),
+});
+
+export function createWalk(walk: Omit<Walk, 'id' | 'participantIds'>): Walk {
+  const id = crypto.randomUUID();
+  insertWalk.run(
+    id,
+    walk.hostId,
+    walk.district,
+    walk.date,
+    walk.time,
+    walk.place,
+    walk.minutes,
+    walk.capacity,
+  );
+  // 만든 사람도 참여자다
+  insertParticipant.run(id, walk.hostId, new Date().toISOString());
+  return { ...walk, id, participantIds: [walk.hostId] };
+}
+
+export const allWalks = (): Walk[] => (selectWalks.all() as Row[]).map(toWalk);
+
+export const findWalk = (id: string): Walk | null => {
+  const row = selectWalk.get(id) as Row | undefined;
+  return row ? toWalk(row) : null;
+};
+
+export const joinWalk = (walkId: string, dogId: string) =>
+  insertParticipant.run(walkId, dogId, new Date().toISOString());
 
 /** 동네가 비어 있으면 첫 사용자에게 후보가 0명이다. 샘플로 채워둔다. */
 export function seed() {
