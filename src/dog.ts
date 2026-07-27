@@ -12,6 +12,9 @@ export type Temperament =
 /** 견주가 원하는 만남 조건. 필터로 쓰되 안전 신호로는 해석하지 않는다. */
 export type MeetPreference = '1:1만' | '비슷한체급만' | '조용한친구만' | '목줄인사부터';
 
+/** 주로 산책하는 시간대. 실제로 만날 수 있는지를 가르는 값이다. */
+export type WalkTime = '아침' | '점심' | '저녁' | '밤';
+
 export type Dog = {
   id: string;
   name: string;
@@ -22,6 +25,10 @@ export type Dog = {
   neutered: boolean;
   /** 미중성화 암컷만 의미가 있다. 켜두면 수컷과의 만남을 막는다. */
   inHeat?: boolean;
+  /** 활동하는 동 이름. 정확한 주소는 받지 않는다 — 동 단위까지만. */
+  district?: string;
+  /** 주로 산책하는 시간대. 비어 있으면 만날 수 있는지 판단할 수 없다. */
+  walkTimes?: WalkTime[];
   temperaments: Temperament[];
   preferences: MeetPreference[];
   /**

@@ -1,16 +1,17 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { findMatches } from '../src/match.ts';
-import { me, neighborhood } from '../sample/neighborhood.ts';
+import { me, neighborhood, districts } from '../sample/neighborhood.ts';
 import type { Dog } from '../src/dog.ts';
 
 const NOW = new Date('2026-07-27T00:00:00Z');
-const matches = findMatches(me, neighborhood, NOW);
+const OPTS = { now: NOW, districts };
+const matches = findMatches(me, neighborhood, OPTS);
 const byName = (name: string) => matches.find((m) => m.dog.name === name)!;
 const rankOf = (name: string) => matches.findIndex((m) => m.dog.name === name);
 
 test('자기 자신은 후보에 들어가지 않는다', () => {
-  const withSelf = findMatches(me, [...neighborhood, me], NOW);
+  const withSelf = findMatches(me, [...neighborhood, me], OPTS);
   assert.equal(withSelf.filter((m) => m.dog.id === me.id).length, 0);
 });
 
@@ -41,9 +42,23 @@ test('차단이면 차단 사유만 남기고 부가 경고는 감춘다', () =>
 
 test('경고가 붙은 상대는 목록에서 빠지지 않고 요청도 가능하다', () => {
   const byeol = byName('별이');
-  assert.equal(byeol.group, 'match');
+  assert.equal(byeol.group, 'reachable');
   assert.equal(byeol.gate.level, 'caution');
   assert.ok(byeol.requestable);
+});
+
+test('만날 수 있는지가 궁합보다 먼저다', () => {
+  // 뭉치(연남동·밤)는 궁합이 좋지만 토리(성산동·저녁,밤)와 시간대만 겹치고 동은 인접
+  // 할부지(합정동·아침)는 동도 멀고 시간대도 안 겹친다
+  const grandpa = byName('할부지');
+  assert.equal(grandpa.group, 'far');
+  assert.ok(grandpa.score! > 0);
+
+  // 점수가 더 낮아도 만날 수 있는 상대가 위로 온다
+  const kkami = byName('까미'); // 성산동·밤 → 겹침
+  assert.equal(kkami.group, 'reachable');
+  assert.ok(kkami.score! < grandpa.score!);
+  assert.ok(rankOf('까미') < rankOf('할부지'));
 });
 
 test('경고 여부가 아니라 점수로 순위를 매긴다', () => {
@@ -54,29 +69,34 @@ test('경고 여부가 아니라 점수로 순위를 매긴다', () => {
   assert.ok(rankOf('별이') < rankOf('방울'));
 });
 
-test('겁많은 소형견에게는 겁많은 소형견이 1순위로 온다', () => {
+test('겁많은 소형견에게는 만날 수 있는 겁많은 소형견이 1순위로 온다', () => {
   assert.equal(matches[0].dog.name, '보리');
+  assert.equal(matches[0].group, 'reachable');
   assert.equal(matches[0].score, 90);
 });
 
-test('태그 없는 프로필은 점수 경쟁에서 빠져 추천 아래로 간다', () => {
-  const kong = byName('콩이');
-  assert.equal(kong.group, 'unknown');
+test('태그 없는 프로필은 점수 경쟁에서 빠져 그룹 안에서 아래로 간다', () => {
+  const kong = byName('콩이'); // 성산동 · 저녁 → 만날 수는 있다
+  assert.equal(kong.group, 'reachable');
   assert.equal(kong.score, null);
   assert.ok(kong.requestable); // 위험한 게 아니라 정보가 없을 뿐이다
 
-  const worstScored = Math.min(
-    ...matches.filter((m) => m.group === 'match').map((m) => rankOf(m.dog.name)),
-  );
-  assert.ok(rankOf('콩이') > worstScored);
+  // 같은 그룹에서 점수가 있는 상대들보다 아래
+  const scoredInGroup = matches.filter((m) => m.group === 'reachable' && m.score !== null);
+  assert.ok(scoredInGroup.every((m) => rankOf(m.dog.name) < rankOf('콩이')));
 });
 
-test('그룹 순서는 추천 → 정보 부족 → 차단', () => {
+test('만날 수 있으면 성향 미기재라도 먼 동네보다 위로 온다', () => {
+  // 성향 미기재를 별도 그룹으로 빼면 이 순서가 뒤집힌다
+  assert.ok(rankOf('콩이') < rankOf('할부지'));
+});
+
+test('그룹 순서는 만날 수 있음 → 못 만남 → 차단', () => {
   const order = matches.map((m) => m.group);
-  const firstUnknown = order.indexOf('unknown');
-  const firstBlocked = order.indexOf('blocked');
-  assert.ok(firstUnknown < firstBlocked);
-  assert.ok(order.slice(0, firstUnknown).every((g) => g === 'match'));
+  const rank = { reachable: 0, far: 1, blocked: 2 };
+  for (let i = 1; i < order.length; i++) {
+    assert.ok(rank[order[i - 1]] <= rank[order[i]], `${order[i - 1]} 뒤에 ${order[i]}`);
+  }
 });
 
 test('오래 방치된 프로필은 순위가 중립 쪽으로 밀린다', () => {
@@ -93,7 +113,7 @@ test('후보가 늘어도 정렬은 안정적이다 (동점은 이름순)', () =
     name,
     temperaments: ['겁많음'],
   });
-  const result = findMatches(me, [twin('t2', '하늘'), twin('t1', '가을')], NOW);
+  const result = findMatches(me, [twin('t2', '하늘'), twin('t1', '가을')], OPTS);
   assert.deepEqual(
     result.map((m) => m.dog.name),
     ['가을', '하늘'],

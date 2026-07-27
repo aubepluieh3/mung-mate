@@ -21,6 +21,8 @@ export type MatchView = {
   /** "말티즈 · 7kg · 3살" */
   subtitle: string;
   tier: MatchTier;
+  /** "같은 동 · 저녁에 함께 걸어요" — 만날 수 있는지가 궁합보다 먼저 보여야 한다. */
+  reach: string;
   verdict: string;
   /** 이 친구가 좋은 이유 한 줄. 없을 수도 있다. */
   highlight?: string;
@@ -52,7 +54,7 @@ const ALTERNATIVE: Record<string, string> = {
 
 const verdictOf = (m: MatchCandidate): { tier: MatchTier; verdict: string } => {
   if (m.group === 'blocked') return { tier: 'blocked', verdict: '이 조합은 권하지 않아요' };
-  if (m.group === 'unknown') return { tier: 'unknown', verdict: '아직 성향을 적지 않은 친구예요' };
+  if (m.score === null) return { tier: 'unknown', verdict: '아직 성향을 적지 않은 친구예요' };
 
   const base = VERDICTS.findIndex((v) => m.score! >= v.min);
   // 안전 경고가 붙은 조합을 최상위 등급으로 올리지 않는다.
@@ -73,12 +75,28 @@ const verdictOf = (m: MatchCandidate): { tier: MatchTier; verdict: string } => {
   return { tier, verdict: label };
 };
 
+const DISTANCE_LABEL = { same: '같은 동', near: '옆 동네', far: '먼 동네', unknown: '' } as const;
+
+/**
+ * 만날 수 있는지를 한 줄로 만든다.
+ * 못 만나는 이유가 거리인지 시간대인지 구분해서 말한다 — 견주가 할 수 있는 일이 다르다.
+ */
+const reachOf = (m: MatchCandidate): string => {
+  const { distance, sharedTimes, timesUnknown } = m.reach;
+
+  if (distance === 'unknown') return '동네를 아직 안 적은 친구예요';
+  if (distance === 'far') return `${DISTANCE_LABEL.far}에 살아요`;
+  if (timesUnknown) return `${DISTANCE_LABEL[distance]} · 산책 시간대를 아직 안 적었어요`;
+  if (sharedTimes.length === 0) return `${DISTANCE_LABEL[distance]} · 산책 시간대가 겹치지 않아요`;
+  return `${DISTANCE_LABEL[distance]} · ${sharedTimes.join(', ')}에 함께 걸어요`;
+};
+
 const guidanceOf = (m: MatchCandidate): string => {
   if (m.group === 'blocked') {
     const reason = m.gate.findings.find((f) => ALTERNATIVE[f.code]);
     return reason ? ALTERNATIVE[reason.code] : '지금은 다른 친구를 찾아보시는 걸 권해요.';
   }
-  if (m.group === 'unknown') {
+  if (m.score === null) {
     return '성향을 알 수 없으니, 목줄을 하고 짧게 인사만 해보세요.';
   }
   return '첫 만남은 목줄을 하고 15분 정도 인사만 해보세요.';
@@ -104,7 +122,7 @@ const watchOutsOf = (m: MatchCandidate): string[] => {
 };
 
 const highlightOf = (m: MatchCandidate): string | undefined => {
-  if (m.group !== 'match') return undefined;
+  if (m.group === 'blocked' || m.score === null) return undefined;
   return [...m.pairs].filter((p) => p.delta > 0 && p.note).sort((a, b) => b.delta - a.delta)[0]
     ?.note;
 };
@@ -114,6 +132,7 @@ export function toView(m: MatchCandidate): MatchView {
   return {
     name: dog.name,
     subtitle: `${dog.breed} · ${dog.weightKg}kg · ${Math.floor(dog.ageMonths / 12)}살`,
+    reach: reachOf(m),
     ...verdictOf(m),
     highlight: highlightOf(m),
     watchOuts: watchOutsOf(m),
@@ -127,8 +146,8 @@ export function toView(m: MatchCandidate): MatchView {
  * 견주가 무엇을 보고 있는지 알려주는 문장으로 쓴다.
  */
 export const GROUP_HEADING = {
-  match: '추천하는 친구',
-  unknown: '성향을 아직 안 적은 친구',
+  reachable: '만날 수 있는 친구',
+  far: '동네나 시간대가 안 맞는 친구',
   blocked: '이번에는 권하지 않는 조합',
 } as const;
 

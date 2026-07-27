@@ -1,6 +1,6 @@
 import { findMatches } from '../src/match.ts';
 import { toView, GROUP_HEADING, firstMeetingNotice } from '../src/present.ts';
-import { me, allDogs } from '../sample/neighborhood.ts';
+import { me, allDogs, districts } from '../sample/neighborhood.ts';
 
 /** 견주가 실제로 보게 될 화면. 점수와 계산식은 나오지 않는다. */
 /** 사용법: node --experimental-strip-types scripts/demo.ts [강아지이름] */
@@ -15,7 +15,7 @@ if (!viewer) {
   process.exit(1);
 }
 
-const matches = findMatches(viewer, dogs, NOW);
+const matches = findMatches(viewer, dogs, { now: NOW, districts });
 
 console.log(
   `\n${viewer.name} · ${viewer.breed} ${viewer.weightKg}kg · ${Math.floor(viewer.ageMonths / 12)}살 · ${viewer.temperaments.join(', ') || '태그 없음'}`,
@@ -32,6 +32,7 @@ for (const m of matches) {
 
   const v = toView(m);
   console.log(`  ${v.name}  ·  ${v.subtitle}`);
+  console.log(`  ${v.reach}`);
   console.log(`  ${v.requestable ? '' : '🚫 '}${v.verdict}`);
   if (v.highlight) console.log(`     ${v.highlight}`);
   for (const w of v.watchOuts) console.log(`     · ${w}`);

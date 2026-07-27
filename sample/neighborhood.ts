@@ -1,12 +1,43 @@
-import type { Dog } from '../src/dog.ts';
+import type { Dog, WalkTime } from '../src/dog.ts';
+import type { DistrictGraph } from '../src/reach.ts';
 
 /** 룰이 실제 목록에서 어떻게 보이는지 눈으로 확인하기 위한 동네 샘플. */
 
 const RECENT = '2026-06-01T00:00:00Z';
 const LONG_AGO = '2024-02-01T00:00:00Z';
 
+/** 걸어서 갈 수 있는 동끼리 이어둔다. 실제 서비스라면 행정구역 데이터에서 온다. */
+export const districts: DistrictGraph = {
+  성산동: ['망원동', '연남동'],
+  망원동: ['성산동', '합정동'],
+  연남동: ['성산동'],
+  합정동: ['망원동'],
+};
+
+/**
+ * 동과 산책 시간대. 개체마다 흩어놓지 않고 표로 모아둔다 — 누가 누구와 만날 수 있는지 한눈에 보인다.
+ * 흰둥은 시간대를 안 적은 견주다.
+ */
+const WALK_INFO: Record<string, { district: string; walkTimes: WalkTime[] }> = {
+  me: { district: '성산동', walkTimes: ['저녁', '밤'] },
+  kong: { district: '성산동', walkTimes: ['저녁'] },
+  bori: { district: '성산동', walkTimes: ['아침', '저녁'] },
+  dubu: { district: '망원동', walkTimes: ['저녁'] },
+  bangul: { district: '성산동', walkTimes: ['점심', '저녁'] },
+  kkami: { district: '성산동', walkTimes: ['밤'] },
+  mungchi: { district: '연남동', walkTimes: ['밤'] },
+  byeol: { district: '성산동', walkTimes: ['아침', '저녁'] },
+  grandpa: { district: '합정동', walkTimes: ['아침'] },
+  nabi: { district: '망원동', walkTimes: ['밤'] },
+  choco: { district: '성산동', walkTimes: ['아침', '저녁'] },
+  heundung: { district: '연남동', walkTimes: [] },
+  saessak: { district: '성산동', walkTimes: ['점심'] },
+};
+
+const withWalkInfo = (d: Dog): Dog => ({ ...d, ...WALK_INFO[d.id] });
+
 /** 기준견 — 겁많음을 정직하게 적은 소형견 견주. 우리가 가장 신경 써야 하는 사용자. */
-export const me: Dog = {
+const tori: Dog = {
   id: 'me',
   name: '토리',
   breed: '시츄',
@@ -19,10 +50,12 @@ export const me: Dog = {
   temperamentsUpdatedAt: RECENT,
 };
 
+export const me: Dog = withWalkInfo(tori);
+
 /** 시점을 바꿔가며 확인하려면 이걸 쓴다. findMatches 가 자기 자신은 걸러낸다. */
 export const allDogs = (): Dog[] => [me, ...neighborhood];
 
-export const neighborhood: Dog[] = [
+const others: Dog[] = [
   {
     id: 'kong',
     name: '콩이',
@@ -171,3 +204,5 @@ export const neighborhood: Dog[] = [
     temperamentsUpdatedAt: RECENT,
   },
 ];
+
+export const neighborhood: Dog[] = others.map(withWalkInfo);

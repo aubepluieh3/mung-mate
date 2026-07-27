@@ -114,6 +114,20 @@ h2 {
   background: #f7f5f2;
 }
 
+/* 만날 수 없는 상대. 지우지는 않지만 눈에 덜 띄게 둔다. */
+.card.muted {
+  border-left-color: var(--blocked);
+  background: #f7f5f2;
+}
+
+.card.muted .verdict {
+  color: var(--muted);
+}
+
+.card.muted .primary {
+  background: #8f867e;
+}
+
 .card.compact {
   padding: 10px 14px;
 }
@@ -216,6 +230,26 @@ h2 {
 .subtitle {
   font-size: 13px;
   color: var(--muted);
+}
+
+.reach {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #4a6f8a;
+  font-weight: 500;
+}
+
+.card.muted .reach,
+.card.low .reach,
+.card.unknown .reach,
+.card.blocked .reach {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.card.compact .reach {
+  margin: 2px 0 0;
+  font-size: 12px;
 }
 
 .verdict {

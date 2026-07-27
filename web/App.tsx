@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { findMatches, type MatchGroup } from '../src/match.ts';
 import { toView, GROUP_HEADING, firstMeetingNotice, type MatchView } from '../src/present.ts';
-import { allDogs } from '../sample/neighborhood.ts';
+import { allDogs, districts } from '../sample/neighborhood.ts';
 
 const years = (months: number) => Math.floor(months / 12);
 
@@ -26,17 +26,20 @@ function RequestPanel({ view, onClose }: { view: MatchView; onClose: () => void 
   );
 }
 
-function DogCard({ view }: { view: MatchView }) {
+function DogCard({ view, group }: { view: MatchView; group: MatchGroup }) {
   const [requesting, setRequesting] = useState(false);
+  // 만날 수 없는 상대는 톤을 낮춘다. 못 만나는 상대를 강조하면 목록이 거짓말을 한다.
+  const cls = `card ${view.tier}${group === 'far' ? ' muted' : ''}`;
 
   if (isCompact(view)) {
     return (
-      <li className={`card ${view.tier} compact`}>
+      <li className={`${cls} compact`}>
         <div className="card-head">
           <strong className="name">{view.name}</strong>
           <span className="subtitle">{view.subtitle}</span>
           <span className="verdict-inline">{view.verdict}</span>
         </div>
+        <p className="reach">{view.reach}</p>
         <details>
           <summary>왜 그런지 보기</summary>
           {view.watchOuts.map((w) => (
@@ -50,11 +53,14 @@ function DogCard({ view }: { view: MatchView }) {
   }
 
   return (
-    <li className={`card ${view.tier}`}>
+    <li className={cls}>
       <div className="card-head">
         <strong className="name">{view.name}</strong>
         <span className="subtitle">{view.subtitle}</span>
       </div>
+
+      {/* 만날 수 있는지가 궁합보다 먼저 읽혀야 한다 */}
+      <p className="reach">{view.reach}</p>
 
       <p className="verdict">{view.verdict}</p>
       {view.highlight && <p className="highlight">{view.highlight}</p>}
@@ -88,18 +94,12 @@ export function App() {
   const viewer = dogs.find((d) => d.id === viewerId)!;
 
   const groups = useMemo(() => {
-    const found = findMatches(viewer, dogs).map(toView);
-    const order: MatchGroup[] = ['match', 'unknown', 'blocked'];
+    const found = findMatches(viewer, dogs, { districts });
+    const order: MatchGroup[] = ['reachable', 'far', 'blocked'];
     return order
       .map((group) => ({
         group,
-        items: found.filter((v) =>
-          group === 'blocked'
-            ? v.tier === 'blocked'
-            : group === 'unknown'
-              ? v.tier === 'unknown'
-              : v.tier !== 'blocked' && v.tier !== 'unknown',
-        ),
+        items: found.filter((m) => m.group === group).map(toView),
       }))
       .filter((g) => g.items.length > 0);
   }, [viewer, dogs]);
@@ -119,8 +119,14 @@ export function App() {
           </select>
         </label>
         <p className="my-tags">
-          {viewer.temperaments.join(' · ') || '성향을 아직 적지 않았어요'}
-          {viewer.sensitiveToDogs && ' · 낯선 개에게 예민해요'}
+          {[
+            viewer.district,
+            viewer.walkTimes?.length ? `${viewer.walkTimes.join(', ')} 산책` : null,
+            viewer.temperaments.join(' · ') || '성향 미기재',
+            viewer.sensitiveToDogs ? '낯선 개에게 예민해요' : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </p>
       </header>
 
@@ -135,7 +141,7 @@ export function App() {
             </summary>
             <ul className="cards">
               {items.map((view) => (
-                <DogCard key={view.name} view={view} />
+                <DogCard key={view.name} view={view} group={group} />
               ))}
             </ul>
           </details>
@@ -146,7 +152,7 @@ export function App() {
             </h2>
             <ul className="cards">
               {items.map((view) => (
-                <DogCard key={view.name} view={view} />
+                <DogCard key={view.name} view={view} group={group} />
               ))}
             </ul>
           </section>
